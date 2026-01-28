@@ -1,8 +1,9 @@
 from flask import Flask, jsonify, render_template, request
 import geopandas as gpd
 import shapely
+import warnings
 from shapely.geometry.polygon import orient
-from backend.generate_data import generate_gdf
+from backend.generate_data import generate_gdf, generate_grids
 import pyproj
 from pyproj import Transformer
 from pytileproj.projgeom import transform_coords
@@ -54,17 +55,17 @@ def get_grid():
         #grid_id = f"{tiling_id}_{int(sampling)}"
         #GRID_MAP[grid_id] = e7grid
     else:
-        filepath = Path(__file__).parent / "data" / f"{continent.lower()}_zone.parquet"
-        gdf = gpd.read_parquet(filepath, columns=["geometry"])
-        gdf["name"] = continent
+        zone_poly = STD_E7[continent].proj_zone_geog.geom
         if env == "cs":
             #new_geom = shapely.simplify(gdf["geometry"][0], 0.1, preserve_topology=True)
             limits_poly = shapely.Polygon([(-179.9, -84), (179.9, -84), (179.9, 84), (-179.9, 84)])
-            new_geom = shapely.intersection(gdf["geometry"][0], limits_poly)
-            if new_geom.geom_type == "MultiPolygon":
-                polygons = new_geom.geoms
-            else:
-                polygons = [new_geom]
+            zone_poly = shapely.intersection(zone_poly, limits_poly)
+            
+        if zone_poly.geom_type == "MultiPolygon":
+            polygons = zone_poly.geoms
+        else:
+            polygons = [zone_poly]
+        
                 
             """
             polygons_split = []
@@ -77,12 +78,13 @@ def get_grid():
                 polygons_split.append(shapely.multipolygons(shapely.get_parts(shapely.ops.polygonize(borders))))
             """
             
-            gdf = gpd.GeoDataFrame({"name": [continent] * len(polygons), "geometry": polygons}, crs=gdf.crs)
+        gdf = gpd.GeoDataFrame({"name": [continent] * len(polygons), "geometry": polygons}, crs=4326)
         
         #for i, row in gdf.iterrows():
         #    gdf.at[i, "geometry"] = orient(row["geometry"])
     
     return jsonify(gdf.__geo_interface__)
+
 
 @app.route("/reprojectToEqui7")
 def reproject_to_equi7():
@@ -132,6 +134,7 @@ def get_traffo():
     e7tile = GRID_MAP[tilename[-2:]].get_tile_from_name(tilename)
     return jsonify(e7tile.geotrans)
 
+
 @app.route("/e7tile")
 def get_e7tile():
     tilename = request.args["tilename"]
@@ -141,5 +144,19 @@ def get_e7tile():
     
     return jsonify(tile_def)
 
+
+def check_and_gen_data():
+    data_path = Path("data")
+    if data_path.exists():
+        return
+    
+    wrn_msg = "Grid data does not exist. Generating... "
+    warnings.warn(wrn_msg)
+
+    data_path.mkdir(parents=True)
+    generate_grids()
+
+
 if __name__ == "__main__":
+    check_and_gen_data()
     app.run(debug=True)

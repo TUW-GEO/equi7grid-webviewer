@@ -58,3 +58,5 @@ uv.lock
 
 # MyST build outputs
 _build
+
+data
