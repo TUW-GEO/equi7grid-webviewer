@@ -1,0 +1,37 @@
+[project]
+authors = [{ name = "TU Wien", email = "remote.sensing@geo.tuwien.ac.at" },
+            { name = "EODC", email = "office@eodc.eu" }]
+name = "equi7grid-webviewer"
+version = "0.1.0"
+description = "Webviewer for Equi7Grid zone, tiling system, and tile display and interaction."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "equi7grid @ git+https://github.com/TUW-GEO/Equi7grid.git@revamp-to-v1",
+    "flask"
+]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Topic :: Software Development :: Libraries",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: POSIX",
+    "Natural Language :: English",
+]
+[project.urls]
+Repository = "https://github.com/TUW-GEO/equi7grid-webviewer"
+
+[project.optional-dependencies]
+docs = ["sphinx", "sphinx-book-theme", "sphinx-autodoc2", "myst-nb"]
+
+[build-system]
+requires = ["uv_build>=0.9.6,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "ipykernel>=7.1.0",
+]
