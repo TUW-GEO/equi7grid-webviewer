@@ -1,3 +1,7 @@
+:root {
+  --header-height: 50px;
+}
+
 html, body {
     margin: 0;
     padding: 0;
@@ -12,6 +16,15 @@ html, body {
     border: 3px solid #555;
     border-radius: 10px;
     overflow: hidden;
+    margin-top: var(--header-height);
+}
+
+#header-frame {
+    position: absolute;
+    inset: 2px;
+    overflow: hidden;
+    height: 45px;
+    top: 7px;
 }
 
 #map {
@@ -22,10 +35,10 @@ html, body {
 #coords {
     position: absolute;
     z-index: 1000;
-    top: 2em;
     right: 4em;
     font-size: 18px;
     left: auto;
+    margin-top: calc(20px + var(--header-height));
 }
 
 .ol-popup {
@@ -144,7 +157,7 @@ top: 0.5em;
 
 #app-icon {
     position: absolute;
-    top: 180px;
+    top: calc(180px + var(--header-height));
     left: 20px;
     width: 0px;
     height: 0px;
@@ -228,7 +241,7 @@ top: 0.5em;
 /* MINIMIZED ICON */
 #proj-app-icon {
     position: absolute;
-    top: 60px;
+    top: calc(60px + var(--header-height));
     left: 20px;
     width: 0px;
     height: 0px;
@@ -261,7 +274,7 @@ top: 0.5em;
 /* TILING MANAGER */
 #tiling-app {
     position: absolute;
-    top: 20px;
+    top: calc(20px + var(--header-height));
     left: 20px;
     width: 300px;
     height: calc(100% - 40px);
@@ -311,7 +324,7 @@ top: 0.5em;
 /* MINIMIZED ICON */
 #tiling-app-icon {
     position: absolute;
-    top: 20px;
+    top: calc(20px + var(--header-height));
     left: 20px;
     width: 0px;
     height: 0px;
@@ -398,7 +411,7 @@ top: 0.5em;
 /* MINIMIZED ICON */
 #layer-app-icon {
     position: absolute;
-    top: 100px;
+    top: calc(100px + var(--header-height));
     left: 20px;
     width: 0px;
     height: 0px;
@@ -483,7 +496,7 @@ top: 0.5em;
 /* MINIMIZED ICON */
 #tile-app-icon {
     position: absolute;
-    top: 140px;
+    top: calc(140px + var(--header-height));
     left: 20px;
     width: 0px;
     height: 0px;
@@ -767,64 +780,68 @@ body.dark {
     --fg: #f0f0f0;
 }
 
-#github-icon {
-    position: absolute;
-    bottom: 40px;
-    left: 20px;
-    width: 20px;
-    height: 20px;
-    border: none;
-    font-size: 14px;
-    cursor: pointer;
-    z-index: 2003;
-    display: block;
+#company-icon {
     fill: none;
     outline: none;
     box-shadow: none;
     background: transparent;
     padding: 0;
     margin: 0;
+    border: none;
 }
 
+#header-title{
+    margin-left: 10px;
+}
+
+#header-tools{
+    float: right;
+    line-height: 45px;
+    margin-right: 10px;
+}
+
+.github-icon {
+    display: inline-block; 
+    margin-right: 10px;
+}
+
+.github-icon img{
+    display: inline-block;
+    vertical-align: middle;   /* 🔑 key line */
+    margin-bottom: 12px; 
+}
+
+.help-icon {
+    display: inline-block; 
+    font-size: 35px;
+    text-decoration: none;
+}
+
+
+/*
 #docs-icon {
-    position: absolute;
-    bottom: 75px;
-    left: 65px;
-    width: 0px;
-    height: 0px;
+    fill: none;
+    outline: none;
+    box-shadow: none;
+    background: transparent;
     border: none;
-    font-size: 45px;
-    cursor: pointer;
-    z-index: 2003;
-    display: block;
+    height: 50px;
+    line-height: 50px;
+    font-size: 40px;
+}
+*/
+/*
+#issue-icon {
     fill: none;
     outline: none;
     box-shadow: none;
     background: transparent;
     padding: 0;
     margin: 0;
-    cursor: help;
-}
-
-#issue-icon {
-    position: absolute;
-    bottom: 69px;
-    left: 125px;
-    width: 0px;
-    height: 0px;
     border: none;
     font-size: 40px;
-    cursor: pointer;
-    z-index: 2003;
-    display: block;
-    fill: none;
-    outline: none;
-    box-shadow: none;
-    background: transparent;
-    padding: 0;
-    margin: 0;
-    cursor: help;
 }
+*/
 
 #layer-toolbar input[type="color"],
 #toolbar input[type="color"],

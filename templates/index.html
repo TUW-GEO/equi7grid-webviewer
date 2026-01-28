@@ -234,13 +234,23 @@
     <button id="app-icon" title="Settings">🔩</button>
 
     <button id="toggle-3d-icon" title="Toggle 3D view">🌍</button>  
-    <button id="github-icon" title="GitHub project"><a href="https://github.com/TUW-GEO/Equi7Grid"><img src="{{ url_for('static', filename='imgs/github-mark.svg') }}" alt="GitHub icon" id="github-icon-logo" width="40px" height="40px"></a></button>
-    <button id="docs-icon" title="Equi7Grid documentation"><a href="https://tuw-geo.github.io/equi7grid/latest/" style="text-decoration: none">📖</a></button>
-    <button id="issue-icon" title="Report issue"><a href="https://github.com/TUW-GEO/Equi7Grid/issues/new" style="text-decoration: none">📫</a></button>
     
     <span id="coords"><b>Lon:</b> -, <b>Lat:</b> -</span>
     <div id="map-frame">
     <div id="map" tabindex="0"></div>
+  </div>
+
+  <div id="header-frame">
+    <span id="header-title">
+    <button id="company-icon" title="TU Wien GEO"><a href="https://www.tuwien.at/mg/geo"><img src="{{ url_for('static', filename='imgs/tuwgeo_logo.png') }}" alt="TU Wien GEO logo" id="tuwgeo-icon-logo" height="45px"></a></button>
+    <button id="company-icon" title="EODC"><a href="https://eodc.eu/"><img src="{{ url_for('static', filename='imgs/eodc_logo_2025_screen.png') }}" alt="EODC logo" id="eodc-logo" height="45px"></a></button>
+    <span style="margin-left: 10px; font-size: 35px; text-align: center; vertical-align: top;">The EquiGrid Webviewer</span></span>
+    <span id="header-tools">
+    <span class="github-icon"><a href="https://github.com/TUW-GEO/Equi7Grid" style="display: inline-block; margin-top: 5px;"><img src="{{ url_for('static', filename='imgs/github-mark.svg') }}" alt="GitHub icon" id="github-icon-logo" width="30px" height="30px"></a></span>
+    <span class="help-icon"><a href="https://tuw-geo.github.io/equi7grid/latest/" style="text-decoration: none">📖</a></span>
+    <span class="help-icon"><a href="https://github.com/TUW-GEO/Equi7Grid/issues/new" style="text-decoration: none">📫</a></span></span>
+    <!--<button id="docs-icon" title="Equi7Grid documentation"></button>
+    <button id="issue-icon" title="Report issue"></button></span>-->
   </div>
 
   <div id="cesium-zoom" class="cesium-zoom">

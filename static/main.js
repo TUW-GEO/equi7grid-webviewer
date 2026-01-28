@@ -632,6 +632,10 @@ document.getElementById('toggle-3d-icon').onclick = () => {
   }
 }
 
+function updateStyles(){
+  Object.keys(styleRegistry).forEach(ds_id => updateStyle(ds_id));
+}
+
 
 const popup = document.getElementById('popup');
 const overlay = new ol.Overlay({
@@ -642,7 +646,7 @@ map.addOverlay(overlay);
 map.on('click', function (evt) {
     if (ol3d.getEnabled()) return;
 
-    Object.keys(styleRegistry).forEach(ds_id => updateStyle(ds_id));
+    
 
     map.forEachFeatureAtPixel(evt.pixel, function (feature) {
         const props = feature.getProperties();
@@ -1116,9 +1120,11 @@ async function init_standard_grids(){
     for (const tiling_level of initTilingIds){  
         const ds_id = continent + "_" + tiling_level
         await registerDataset(ds_id, `/grid?continent=${continent}&tiling_id=${tiling_level}`);
+        updateStyle(ds_id);
     }
   }
   renderLayerSwitcher();
+  updateStyles();
   endLoader();
 }
 
@@ -1737,8 +1743,6 @@ function enableDragAndDropOuter(list, itemNameOuter, itemNameInner) {
       applyLayerOrder(itemNameInner);
     });
 
-    console.log(draggedItem);
-
     item.addEventListener('dragover', e => {
       e.preventDefault();
       const after = getDragAfterElement(list, e.clientY, itemNameOuter);
@@ -1806,6 +1810,8 @@ function updateStyle(ds_id){
   }
   const style = styleRegistry[ds_id];
 
+  console.log(ds_id)
+
   layerRegistry[ds_id]["ol"].setStyle(feature => createLabelStyle(feature, style));
   if(queryData){
     queryData.forEach(tile => {
@@ -1849,6 +1855,7 @@ function updateStyle(ds_id){
 
   const fillColorInput = document.getElementById(`FillColor_${ds_id}`);
   if(fillColorInput){
+    console.log("hello")
     fillColorInput.value = styleRegistry[ds_id]["fillColor"];
     const strokeColorInput = document.getElementById(`StrokeColor_${ds_id}`);
     strokeColorInput.value = styleRegistry[ds_id]["strokeColor"];
