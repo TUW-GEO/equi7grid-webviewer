@@ -1,8 +1,6 @@
 from flask import Flask, jsonify, render_template, request
 import geopandas as gpd
 import shapely
-import json
-import shapely.ops
 from shapely.geometry.polygon import orient
 from backend.generate_data import generate_gdf
 import pyproj
