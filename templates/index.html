@@ -49,14 +49,17 @@
       </div>
     
       <div id="toolbar">
-        <button id="themeToggle">🌙 Dark</button>
-        ✏️<input type="range" min="1" max="3" value="2" class="slider" id="strokeWidthSlider">
-        🏁<input type="range" min="1" max="100" value="60" class="slider" id="opacitySlider">
-        Show tile labels <input type="checkbox" id="tileLabelCheckbox" onchange="labelTiles(this.checked)"></input>
-        Show zones <input type="checkbox" id="zoneCheckbox" onchange="showZones(this.checked)"></input>
-
-
-        <!-- Coordinate reprojection -->
+        <div class="slider-wrap">
+          <span class="slider-emoji" id="strokeEmoji">✏️</span>
+          <input type="range" min="1" max="3" value="2" id="strokeWidthSlider">
+        </div>
+        <div class="slider-wrap">
+          <span class="slider-emoji" id="opacEmoji">🏁</span>
+          <input type="range" min="1" max="100" value="60" id="opacSlider">
+        </div>
+        <label id="label-tiles-switch-container">
+          Show tile labels<input type="checkbox" id="tileLabelCheckbox" onchange="labelTiles(this.checked)"/>
+        </label>
       </div>
     </div>
 
@@ -210,13 +213,23 @@
         <span>🔍 Tile Query</span>
         <button id="minimizeTileApp">—</button>
       </div>
-      <div class="bbox">
+      <div id="query-tools-container">
+      <button id="bboxBtn", title="Bounding box">&#x2328;&#xFE0F;</button>
+      <button id="bboxDrawBtn", title="Draw bounding box">🔲</button>
+      <button id="polyDrawBtn", title="Draw polygon">✏️</button>
+      <span class="selectTilingTiles" style="float: right; margin-right: 20px; margin-top: 20px;"><select id="tilesTiling">
+          </select>
+        </span>
+      </div>
+      <div class="bbox" id="bboxWrapper">
       <label class="north">North: <input id="bbox_n" type="text"></label>
       <label class="west">West: <input id="bbox_w" type="text"></label>
       <label class="east">East: <input id="bbox_e" type="text"></label>
       <label class="south">South: <input id="bbox_s" type="text"></label>
       </div>
+      <div>
       <button id="queryTiles">Query tiles</button>
+      </div>
       <div id="tileResults">
         <ul id="tileList">
         </ul>

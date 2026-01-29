@@ -1,12 +1,13 @@
 from flask import Flask, jsonify, render_template, request
 import geopandas as gpd
 import shapely
+import shapely.wkt as swkt
 import warnings
 from shapely.geometry.polygon import orient
 from backend.generate_data import generate_gdf, generate_grids
 import pyproj
 from pyproj import Transformer
-from pytileproj.projgeom import transform_coords
+from pytileproj.projgeom import transform_coords, ProjGeom
 from pathlib import Path
 from pytileproj.tiling_system import (
     RegularTilingDefinition,
@@ -114,8 +115,8 @@ def reproject_from_equi7():
     return jsonify({"x": x2, "y": y2})
 
 
-@app.route("/tiles")
-def query_tiles():
+@app.route("/tilesFromBbox")
+def query_tiles_from_bbox():
     east = float(request.args["east"])
     south = float(request.args["south"])
     west = float(request.args["west"])
@@ -124,6 +125,19 @@ def query_tiles():
 
     e7grid = STD_E7 if tiling_id in STD_TILINGS else GRID_MAP[tiling_id]
     e7tiles = e7grid.get_tiles_in_geog_bbox([east, south, west, north], tiling_id=tiling_id)
+    tilenames = [e7tile.name for e7tile in e7tiles]
+    return jsonify(tilenames)
+
+
+@app.route("/tilesFromWkt")
+def query_tiles_from_wkt():
+    wkt = request.args["wkt"]
+    tiling_id = request.args["tiling_id"]
+
+    e7grid = STD_E7 if tiling_id in STD_TILINGS else GRID_MAP[tiling_id]
+    poly = swkt.loads(wkt)
+    proj_geom = ProjGeom(geom=poly, crs=pyproj.CRS.from_epsg(3857))
+    e7tiles = e7grid.get_tiles_in_geom(proj_geom=proj_geom, tiling_id=tiling_id)
     tilenames = [e7tile.name for e7tile in e7tiles]
     return jsonify(tilenames)
 

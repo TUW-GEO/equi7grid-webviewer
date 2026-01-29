@@ -8,6 +8,9 @@ let toEqui7 = true;
 let queryData = null;
 let csHlPrimitive = null;
 let activeGrid = null;
+let tileQueryOp = null;
+let drawInteraction;
+let lastPointerCoord = null;
 
 const layerRegistry = {}
 const styleRegistry = {}
@@ -108,6 +111,24 @@ const olVectorStyle = new ol.style.Style({
   })
 });
 
+const drawSource = new ol.source.Vector();
+
+const drawLayer = new ol.layer.Vector({
+  source: drawSource
+});
+
+drawLayer.setStyle(
+  new ol.style.Style({
+    stroke: new ol.style.Stroke({
+      color: '#0077ff',
+      width: 2
+    }),
+    fill: new ol.style.Fill({
+      color: 'rgba(0,119,255,0.2)'
+    })
+  })
+);
+
 //vectorLayer.setStyle(olVectorStyle);
 
 
@@ -117,6 +138,46 @@ const map = new ol.Map({
     view: view
     /*renderer: 'canvas'*/
 });
+
+map.addLayer(drawLayer);
+
+function drawPolygon() {
+  if (drawInteraction) {
+    map.removeInteraction(drawInteraction);
+  }
+
+  drawInteraction = new ol.interaction.Draw({
+    source: drawSource,
+    type: 'Polygon'
+  });
+
+  map.addInteraction(drawInteraction);
+}
+
+function drawBoundingBox() {
+  if (drawInteraction) {
+    map.removeInteraction(drawInteraction);
+  }
+
+  drawInteraction = new ol.interaction.Draw({
+    source: drawSource,
+    type: 'Circle',
+    geometryFunction: ol.interaction.Draw.createBox()
+  });
+
+  map.addInteraction(drawInteraction);
+}
+
+function clearDrawings() {
+  drawSource.clear();
+}
+
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape' && drawInteraction) {
+    drawInteraction.abortDrawing();
+  }
+});
+
 /*
 const map = new ol.Map({
   layers: [openfreemap],
@@ -645,9 +706,8 @@ map.addOverlay(overlay);
 
 map.on('click', function (evt) {
     if (ol3d.getEnabled()) return;
-
+    if (drawInteraction) return;
     
-
     map.forEachFeatureAtPixel(evt.pixel, function (feature) {
         const props = feature.getProperties();
         popup.innerHTML = props.name;
@@ -657,26 +717,35 @@ map.on('click', function (evt) {
 
 map.getViewport().addEventListener('contextmenu', function (evt) {
   evt.preventDefault();
-  const lonlat = ol.proj.toLonLat(map.getEventCoordinate(evt));
-
-  if (reprojMouse & toEqui7){
-    document.getElementById('xCoordOther').value = lonlat[0].toFixed(6);
-    document.getElementById('yCoordOther').value = lonlat[1].toFixed(6);
-    document.getElementById('otherCRS').value = 4326;
-    document.getElementById('xCoordE7').value = "";
-    document.getElementById('yCoordE7').value = "";
+  if(drawInteraction){
+    if (tileQueryOp !== 'POLY-DRAW') return;
+    if (lastPointerCoord) {
+      drawInteraction.appendCoordinates([lastPointerCoord]);
+    }
+    drawInteraction.finishDrawing();
   }
+  else{
+      const lonlat = ol.proj.toLonLat(map.getEventCoordinate(evt));
 
-  navigator.clipboard.writeText(lonlat);
+      if (reprojMouse & toEqui7){
+        document.getElementById('xCoordOther').value = lonlat[0].toFixed(6);
+        document.getElementById('yCoordOther').value = lonlat[1].toFixed(6);
+        document.getElementById('otherCRS').value = 4326;
+        document.getElementById('xCoordE7').value = "";
+        document.getElementById('yCoordE7').value = "";
+      }
 
-  Swal.fire({
-    position: "top-end",
-    icon: "success",
-    title: '<span style="font-size: 18px;font-weight: bold;">Copied coordinate.</span>',
-    showConfirmButton: false,
-    timer: 1500,
-    width: "400px"
-  });
+      navigator.clipboard.writeText(lonlat);
+
+      Swal.fire({
+        position: "top-end",
+        icon: "success",
+        title: '<span style="font-size: 18px;font-weight: bold;">Copied coordinate.</span>',
+        showConfirmButton: false,
+        timer: 1500,
+        width: "400px"
+      });
+  }
 });
 
 function ds_id_from_name(name){
@@ -692,10 +761,12 @@ function ds_id_from_name(name){
 }
 
 function selectStyle(feature) {
-  ds_id = ds_id_from_name(feature.getProperties().name)
-  const selectedStyle = createLabelStyle(feature, styleRegistry[ds_id])
-  selectedStyle.getFill().setColor(hlFillColor);
-  return selectedStyle;
+  if(!tileQueryOp){
+    ds_id = ds_id_from_name(feature.getProperties().name)
+    const selectedStyle = createLabelStyle(feature, styleRegistry[ds_id])
+    selectedStyle.getFill().setColor(hlFillColor);
+    return selectedStyle;
+  }
 }
 
 const selectClick = new ol.interaction.Select({
@@ -705,18 +776,40 @@ const selectClick = new ol.interaction.Select({
 map.addInteraction(selectClick);
 
 
-document.getElementById('themeToggle').onclick = () => {
-    document.body.classList.toggle('dark');
-    document.body.classList.toggle('light');
-};
-
-
 map.on('pointermove', e => {
+    lastPointerCoord = e.coordinate;
     const coord = ol.proj.toLonLat(e.coordinate);
     document.getElementById('coords').innerHTML =
         `<b>Lon:</b> ${coord[0].toFixed(4)}, <b>Lat:</b> ${coord[1].toFixed(4)}`;
 });
 
+
+const strokeSlider = document.getElementById('strokeWidthSlider');
+const strokeEmoji =document.getElementById('strokeEmoji');
+
+function updateStrokeEmoji() {
+  const min = strokeSlider.min;
+  const max = strokeSlider.max;
+  const percent = (strokeSlider.value - min) / (max - min);
+  strokeEmoji.style.left = percent * 100 + '%';
+}
+
+strokeSlider.addEventListener('input', updateStrokeEmoji);
+updateStrokeEmoji();
+
+
+const opacSlider = document.getElementById('opacSlider');
+const opacEmoji =document.getElementById('opacEmoji');
+
+function updateOpacEmoji() {
+  const min = opacSlider.min;
+  const max = opacSlider.max;
+  const percent = (opacSlider.value - min) / (max - min);
+  opacEmoji.style.left = percent * 100 + '%';
+}
+
+opacSlider.addEventListener('input', updateOpacEmoji);
+updateOpacEmoji();
 
 /*
 document.getElementById('loadGrid').onclick = () => {
@@ -920,16 +1013,44 @@ e7tile = Equi7Tile(**json_dict)
 }
 
 document.getElementById('queryTiles').onclick = async () => {
-    const east = document.getElementById('bbox_e').value
-    const south = document.getElementById('bbox_s').value
-    const west = document.getElementById('bbox_w').value
-    const north = document.getElementById('bbox_n').value
-    //const sampling = document.getElementById('sampling').value;
-    const tiling_id = activeGrid.split("_")[1];
+    updateStyles();
+    if(!tileQueryOp){
+        const bboxWrapper = document.getElementById('bboxWrapper');
+        const bboxActive = bboxWrapper.style.display == "grid";
+        if(bboxActive){
+          tileQueryOp = "BBOX";
+        }
+        else{
+          return
+        }
+    } 
+    map.removeInteraction(drawInteraction);
+    drawInteraction = null;
 
-    const res = await fetch(
-        `/tiles?east=${east}&south=${south}&west=${west}&north=${north}&sampling=${sampling}&tiling_id=${tiling_id}`
+    const tiling_id = document.getElementById("tilesTiling").value;
+    let res;
+    if(tileQueryOp == "BBOX"){
+      const east = document.getElementById('bbox_e').value
+      const south = document.getElementById('bbox_s').value
+      const west = document.getElementById('bbox_w').value
+      const north = document.getElementById('bbox_n').value
+      res = await fetch(
+        `/tilesFromBbox?east=${east}&south=${south}&west=${west}&north=${north}&tiling_id=${tiling_id}`
     );
+    }
+    else{
+      const feature = drawSource.getFeatures()[0];
+      const wkt = new ol.format.WKT();
+      const wktGeom = wkt.writeGeometry(feature.getGeometry());
+      res = await fetch(
+        `/tilesFromWkt?wkt=${wktGeom}&tiling_id=${tiling_id}`
+    );
+    }
+    
+    //const sampling = document.getElementById('sampling').value;
+    //const tiling_id = activeGrid.split("_")[1];
+
+    
     const data = await res.json();
 
     const list = document.getElementById('tileList');
@@ -975,6 +1096,9 @@ document.getElementById('queryTiles').onclick = async () => {
     scene.primitives.add(csHlPrimitive);
 
     queryData = data;
+
+    clearDrawings();
+    tileQueryOp = null;
 
     //document.getElementById('tileResults').innerText = `${data}`;
     };
@@ -1089,7 +1213,6 @@ function setLayerVisible(id, visible) {
 }
 
 async function init_zones(){
-  startLoader();
   for (const continent of continents){
     const ds_id = continent + "_ZONE"
     let zoneStyle = {};
@@ -1099,7 +1222,6 @@ async function init_zones(){
     await registerDataset(ds_id, `/grid?continent=${continent}`);
   }
   renderLayerSwitcher();
-  endLoader();
 }
 
 function startLoader(){
@@ -1115,16 +1237,20 @@ function endLoader(){
 }
 
 async function init_standard_grids(){
-  startLoader();
   for (const continent of continents){
     for (const tiling_level of initTilingIds){  
         const ds_id = continent + "_" + tiling_level
         await registerDataset(ds_id, `/grid?continent=${continent}&tiling_id=${tiling_level}`);
-        updateStyle(ds_id);
     }
   }
   renderLayerSwitcher();
   updateStyles();
+}
+
+async function initLayers(){
+  startLoader();
+  await init_zones();
+  await init_standard_grids();
   endLoader();
 }
 
@@ -1138,12 +1264,18 @@ async function loadGrid() {
   ds_id = continent + "_" + tiling_id
   if (!(ds_id in layerRegistry)){
     await registerDataset(ds_id, `/grid?continent=${continent}&tiling_id=${tiling_id}&tile_size=${tile_size}`)
+    if(!(tiling_id in tiling_levels)){
+      tiling_levels.push(tiling_id);
+    }
     renderLayerSwitcher();
+    updateStyles();
   }
 
+  /*
   Object.keys(layerRegistry).forEach(key => {
     setLayerVisible(key, key == ds_id);
   });
+  */
 }
 
 
@@ -1229,13 +1361,9 @@ const tilingAppPanel = document.getElementById('tiling-app');
 const tilingAppIcon = document.getElementById('tiling-app-icon');
 const tilingMinimizeBtn = document.getElementById('minimizeTilingApp');
 
-const githubIcon = document.getElementById('github-icon');
-const docsIcon = document.getElementById('docs-icon');
-const issueIcon = document.getElementById('issue-icon');
-
 
 const app_panels = {"app": appPanel, "proj": projAppPanel, "layer": layerAppPanel, "tile": tileAppPanel, "tiling": tilingAppPanel}
-const app_icons = {"app": appIcon, "proj": projAppIcon, "layer": layerAppIcon, "tile": tileAppIcon, "3d": toggle3dIcon, "github": githubIcon, "docs": docsIcon, "issue": issueIcon, "tiling": tilingAppIcon}
+const app_icons = {"app": appIcon, "proj": projAppIcon, "layer": layerAppIcon, "tile": tileAppIcon, "3d": toggle3dIcon, "tiling": tilingAppIcon}
 
 function minimize_app(){
   Object.values(app_panels).forEach(panel => {
@@ -1331,6 +1459,35 @@ tilingAppIcon.onclick = () => {
     // Ensure map renders correctly
     setTimeout(() => map.updateSize(), 50);
 };
+
+
+const bboxBtn = document.getElementById('bboxBtn');
+const bboxWrapper = document.getElementById('bboxWrapper');
+bboxBtn.onclick = () => {
+    tileQueryOp = "BBOX";
+    if(bboxWrapper.style.display == "grid"){
+      bboxWrapper.style.display = "none";
+    }
+    else{
+      bboxWrapper.style.display = "grid";
+    }
+    
+};
+
+const bboxDrawBtn = document.getElementById('bboxDrawBtn');
+bboxDrawBtn.onclick = () => {
+    clearDrawings();
+    tileQueryOp = "BBOX-DRAW";    
+    drawBoundingBox();
+};
+
+const polyDrawBtn = document.getElementById('polyDrawBtn');
+polyDrawBtn.onclick = () => {
+    clearDrawings();
+    tileQueryOp = "POLY-DRAW";
+    drawPolygon();
+};
+
 
 function getPolygonCenter(entity) {
   const now = Cesium.JulianDate.now();
@@ -1462,7 +1619,7 @@ document.getElementById('strokeWidthSlider').oninput = (e) => {
     });
 };
 
-document.getElementById('opacitySlider').oninput = (e) => {
+document.getElementById('opacSlider').oninput = (e) => {
     Object.keys(styleRegistry).forEach(dsId => {
       styleRegistry[dsId].alpha = e.target.value/100.;
       updateStyle(dsId);
@@ -1476,7 +1633,11 @@ function labelTiles(checked){
     updateStyle(ds_id)
   })
 
-  Object.values(layerRegistry).forEach(layer => applyCesiumLabels(layer["cesium"], checked));
+  Object.values(layerRegistry).forEach(layer => {
+    if (layer.visible){
+      applyCesiumLabels(layer["cesium"], checked)
+    }
+    });
 }
 
 
@@ -1532,7 +1693,6 @@ async function doAddDelPerTiling(continent, tilingId){
       delete layerRegistry[dsId];
       delete styleRegistry[dsId];
     }
-    renderLayerSwitcher();
 }
 
 function doAddDel(continent){
@@ -1548,6 +1708,9 @@ function doAddDel(continent){
   for(const tilingIdAddDel of tilingIdsAddDel){
     doAddDelPerTiling(continent, tilingIdAddDel);
   }
+
+  renderLayerSwitcher();
+  updateStyles();
 }
 
 
@@ -1586,7 +1749,7 @@ function renderLayerSwitcher() {
         li.dataset.layerId = dsId;
 
         if(tilingId == "ZONE"){
-          li.innerHTML = `<input type="checkbox"></input>${tilingId}`
+          li.innerHTML = `<input type="checkbox"></input> ${tilingId}`
         }
         else{
           li.innerHTML = `
@@ -1615,6 +1778,18 @@ function renderLayerSwitcher() {
   const continentList = document.getElementById('continentList');
   enableDragAndDropOuter(continentList, '.continent-item', '.tiling-item');
 
+
+  const tilesTilingSelect = document.getElementById("tilesTiling")
+  tilesTilingSelect.innerHTML = "";
+  for (const tilingId of tilingIds){
+    if(tilingId == "ZONE"){
+      continue
+    }
+    const opt = document.createElement("option");
+    opt.value = tilingId;
+    opt.innerText = tilingId;
+    tilesTilingSelect.appendChild(opt)
+  }
   /*
   for(const tilingId of tilingIds){
     
@@ -1810,8 +1985,6 @@ function updateStyle(ds_id){
   }
   const style = styleRegistry[ds_id];
 
-  console.log(ds_id)
-
   layerRegistry[ds_id]["ol"].setStyle(feature => createLabelStyle(feature, style));
   if(queryData){
     queryData.forEach(tile => {
@@ -1855,7 +2028,6 @@ function updateStyle(ds_id){
 
   const fillColorInput = document.getElementById(`FillColor_${ds_id}`);
   if(fillColorInput){
-    console.log("hello")
     fillColorInput.value = styleRegistry[ds_id]["fillColor"];
     const strokeColorInput = document.getElementById(`StrokeColor_${ds_id}`);
     strokeColorInput.value = styleRegistry[ds_id]["strokeColor"];
@@ -2005,5 +2177,4 @@ handler.setInputAction((movement) => {
 }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 */
 
-init_zones();
-init_standard_grids();
+initLayers();
