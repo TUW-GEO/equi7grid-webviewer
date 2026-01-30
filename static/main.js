@@ -1645,6 +1645,12 @@ function showZones(checked){
   continents.forEach(continent => setLayerVisible(continent + "_ZONE", checked));
 }
 
+async function changeSampling(input){
+  await fetch(
+        `/sampling?sampling=${input.value}`
+    )
+}
+
 
 function collapse(continent){
   const plusText = "\u2795";

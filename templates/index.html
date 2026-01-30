@@ -57,9 +57,12 @@
           <span class="slider-emoji" id="opacEmoji">🏁</span>
           <input type="range" min="1" max="100" value="60" id="opacSlider">
         </div>
-        <label id="label-tiles-switch-container">
-          Show tile labels<input type="checkbox" id="tileLabelCheckbox" onchange="labelTiles(this.checked)"/>
-        </label>
+        <div id="label-tiles-switch-container">
+          Show tile labels <input type="checkbox" id="tileLabelCheckbox" onchange="labelTiles(this.checked)"/>
+        </div>
+        <div id="sampling-switch-container">
+          Change sampling [m] <input type="text" id="samplingInput" onchange="changeSampling(this)" placeholder="500">
+        </div>
       </div>
     </div>
 

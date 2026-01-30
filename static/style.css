@@ -145,6 +145,7 @@ top: 0.5em;
     overflow-y: auto;
 }
 
+/*
 #toolbar input,
 #toolbar select{
     width: 100%;
@@ -1195,14 +1196,26 @@ input[type="color"]::-moz-color-swatch {
 }
 
 #label-tiles-switch-container{
-    margin-top: 20px;
+    margin-top: 30px;
     margin-left: 10px;
-    display: inline-block;
-    white-space: nowrap;
 }
 
 
 #tileLabelCheckbox{
-    margin-left: -20px;
+    margin-left: 10px;
+}
+
+
+#sampling-switch-container{
+    margin-left: 10px;
+    margin-top: 20px;
+}
+
+
+#samplingInput{
+    margin-right: 5px;
+    text-align: right;
+    float: right;
+    width: 20%;
 }
 

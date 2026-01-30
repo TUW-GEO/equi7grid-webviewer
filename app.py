@@ -19,10 +19,17 @@ from equi7grid.create_grids import get_system_definitions
 EPSG_MAP = {continent: sysdef.crs for continent, sysdef in get_system_definitions().items()}
 GRID_MAP = {}
 STD_SAMPLING = 500
-STD_TILINGS = {"T1": STD_SAMPLING, "T3": STD_SAMPLING, "T6": STD_SAMPLING}
-STD_E7 = get_standard_equi7grid(STD_TILINGS)
+DEF_SEG_LEN_3857 = 10_000
 
 app = Flask(__name__)
+
+def get_std_tilings():
+    return {"T1": STD_SAMPLING, "T3": STD_SAMPLING, "T6": STD_SAMPLING}
+
+STD_E7 = get_standard_equi7grid(get_std_tilings())
+
+def get_e7grid(tiling_id: str | int):
+    return STD_E7 if tiling_id in get_std_tilings() else GRID_MAP[tiling_id]
 
 @app.route("/")
 def index():
@@ -39,7 +46,7 @@ def get_grid():
     if tiling_id is not None:
         #create grid instance
         if tile_size is not None:
-            if tiling_id in STD_TILINGS:
+            if tiling_id in get_std_tilings():
                 err_msg = "Tile size tag is already in use."
                 raise ValueError(err_msg)
             if len(tiling_id) != 2:
@@ -50,15 +57,11 @@ def get_grid():
             gdf = generate_gdf(e7grid, continent, tiling_id)
             GRID_MAP[tiling_id] = e7grid
         else:
-            #e7grid = get_standard_equi7grid({tiling_id: sampling})
             filepath = Path(__file__).parent / "data" / f"{continent}_{tiling_id}.parquet"
             gdf = gpd.read_parquet(filepath, columns=["name", "geometry"])
-        #grid_id = f"{tiling_id}_{int(sampling)}"
-        #GRID_MAP[grid_id] = e7grid
     else:
         zone_poly = STD_E7[continent].proj_zone_geog.geom
         if env == "cs":
-            #new_geom = shapely.simplify(gdf["geometry"][0], 0.1, preserve_topology=True)
             limits_poly = shapely.Polygon([(-179.9, -84), (179.9, -84), (179.9, 84), (-179.9, 84)])
             zone_poly = shapely.intersection(zone_poly, limits_poly)
             
@@ -66,23 +69,8 @@ def get_grid():
             polygons = zone_poly.geoms
         else:
             polygons = [zone_poly]
-        
-                
-            """
-            polygons_split = []
-            for poly in polygons:
-                meridian = shapely.LineString([(0, -84), (0, 84)])
-                merged = shapely.ops.linemerge([poly.boundary,
-                    meridian
-                ])
-                borders = shapely.ops.unary_union(merged)
-                polygons_split.append(shapely.multipolygons(shapely.get_parts(shapely.ops.polygonize(borders))))
-            """
             
         gdf = gpd.GeoDataFrame({"name": [continent] * len(polygons), "geometry": polygons}, crs=4326)
-        
-        #for i, row in gdf.iterrows():
-        #    gdf.at[i, "geometry"] = orient(row["geometry"])
     
     return jsonify(gdf.__geo_interface__)
 
@@ -123,7 +111,7 @@ def query_tiles_from_bbox():
     north = float(request.args["north"])
     tiling_id = request.args["tiling_id"]
 
-    e7grid = STD_E7 if tiling_id in STD_TILINGS else GRID_MAP[tiling_id]
+    e7grid = get_e7grid(tiling_id)
     e7tiles = e7grid.get_tiles_in_geog_bbox([east, south, west, north], tiling_id=tiling_id)
     tilenames = [e7tile.name for e7tile in e7tiles]
     return jsonify(tilenames)
@@ -134,8 +122,8 @@ def query_tiles_from_wkt():
     wkt = request.args["wkt"]
     tiling_id = request.args["tiling_id"]
 
-    e7grid = STD_E7 if tiling_id in STD_TILINGS else GRID_MAP[tiling_id]
-    poly = swkt.loads(wkt)
+    e7grid = get_e7grid(tiling_id)
+    poly = shapely.segmentize(swkt.loads(wkt), DEF_SEG_LEN_3857)
     proj_geom = ProjGeom(geom=poly, crs=pyproj.CRS.from_epsg(3857))
     e7tiles = e7grid.get_tiles_in_geom(proj_geom=proj_geom, tiling_id=tiling_id)
     tilenames = [e7tile.name for e7tile in e7tiles]
@@ -145,18 +133,40 @@ def query_tiles_from_wkt():
 @app.route("/traffo")
 def get_traffo():
     tilename = request.args["tilename"]
-    e7tile = GRID_MAP[tilename[-2:]].get_tile_from_name(tilename)
+    tiling_id = tilename[-2:]
+    e7grid = get_e7grid(tiling_id)
+    e7tile = e7grid.get_tile_from_name(tilename)
     return jsonify(e7tile.geotrans)
 
 
 @app.route("/e7tile")
 def get_e7tile():
     tilename = request.args["tilename"]
-    e7tile = GRID_MAP[tilename[-2:]].get_tile_from_name(tilename)
+    tiling_id = tilename[-2:]
+    e7grid = e7grid = get_e7grid(tiling_id)
+    e7tile = e7grid.get_tile_from_name(tilename)
     e7tile.crs = e7tile.crs.to_proj4()
     tile_def = e7tile.model_dump()
     
     return jsonify(tile_def)
+
+
+@app.route("/sampling")
+def update_sampling():
+    global STD_SAMPLING
+    global STD_E7
+    global GRID_MAP
+
+    sampling = float(request.args["sampling"])
+    STD_SAMPLING = sampling
+    STD_E7 = get_standard_equi7grid(get_std_tilings())
+
+    for tiling_id in GRID_MAP.keys():
+        reg_tiling_def = RegularTilingDefinition(name=tiling_id, tile_shape=GRID_MAP[tiling_id].EU[tiling_id].tile_size)
+        e7grid = get_user_equi7grid({tiling_id: STD_SAMPLING}, {tiling_id: reg_tiling_def})
+        GRID_MAP[tiling_id] = e7grid
+
+    return "Success"
 
 
 def check_and_gen_data():
