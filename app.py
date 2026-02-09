@@ -4,7 +4,7 @@ import shapely
 import shapely.wkt as swkt
 import warnings
 from shapely.geometry.polygon import orient
-from backend.generate_data import generate_gdf, generate_grids
+from backend.generate_data import generate_gdf, generate_grids, MAX_SEG_LEN
 import pyproj
 from pyproj import Transformer
 from pytileproj.projgeom import transform_coords, ProjGeom
@@ -54,10 +54,11 @@ def get_grid():
                 raise ValueError(err_msg)
             reg_tiling_def = RegularTilingDefinition(name=tiling_id, tile_shape=tile_size)
             e7grid = get_user_equi7grid({tiling_id: STD_SAMPLING}, {tiling_id: reg_tiling_def})
-            gdf = generate_gdf(e7grid, continent, tiling_id)
+            max_seg_len = None if env == "cs" else MAX_SEG_LEN
+            gdf = generate_gdf(e7grid, continent, tiling_id, max_seg_len=max_seg_len)
             GRID_MAP[tiling_id] = e7grid
         else:
-            filepath = Path(__file__).parent / "data" / f"{continent}_{tiling_id}.parquet"
+            filepath = Path(__file__).parent / "data" / f"{continent}_{tiling_id}_{env}.parquet"
             gdf = gpd.read_parquet(filepath, columns=["name", "geometry"])
     else:
         zone_poly = STD_E7[continent].proj_zone_geog.geom
@@ -174,7 +175,7 @@ def check_and_gen_data():
     if data_path.exists():
         return
     
-    wrn_msg = "Grid data does not exist. Generating... "
+    wrn_msg = "Tile data does not exist. Generating... "
     warnings.warn(wrn_msg)
 
     data_path.mkdir(parents=True)

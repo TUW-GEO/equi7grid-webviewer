@@ -1,7 +1,10 @@
 
 //proj4.defs("EPSG:27704","+proj=aeqd +lat_0=53 +lon_0=24 +x_0=5837287.82 +y_0=2121415.696 +datum=WGS84 +units=m +no_defs +type=crs");
 //ol.proj.proj4.register(proj4);
+const browser = bowser.getParser(window.navigator.userAgent);
+console.log(`The current browser name is "${browser.getBrowserName()}"`)
 
+const disable3D = browser.getBrowserName() != "Chrome";
 let is3D = false;
 let reprojMouse = false;
 let toEqui7 = true;
@@ -12,8 +15,14 @@ let tileQueryOp = null;
 let drawInteraction;
 let lastPointerCoord = null;
 
+let ol3d;
+let scene;
+let handler;
+let camera;
+
 const layerRegistry = {}
 const styleRegistry = {}
+const layerDeleteRegistry = {"AF": false, "AN": false, "AS": false, "EU": false, "NA": false, "OC": false, "SA": false}
 const fontFamily = "Segoe UI, Tahoma, Geneva, Verdana, sans-serif";
 
 const hlFillColor = [223, 216, 17, 0.9]
@@ -186,9 +195,90 @@ const map = new ol.Map({
 })
 olms.apply(openfreemap, 'https://tiles.openfreemap.org/styles/positron')
 */
-const ol3d = new olcs.OLCesium({ map, 
+async function create3d(){
+  if (!disable3D){
+  ol3d = new olcs.OLCesium({ map, 
     synchronize: false   // IMPORTANT: disable layer sync
 });
+
+  scene = ol3d.getCesiumScene();
+  handler = new Cesium.ScreenSpaceEventHandler(scene.canvas);
+  camera = scene.camera;
+
+  handler.setInputAction(movement => {
+    if (!ol3d.getEnabled()) return;
+
+    if(csHlPrimitive){
+      scene.primitives.remove(csHlPrimitive);
+      csHlPrimitive.destroy();
+    }
+
+  //Object.keys(styleRegistry).forEach(ds_id => updateStyle(ds_id));
+
+    const picked = scene.pick(movement.position);
+    if (!picked || !picked.id) return;
+
+    const ds_id = ds_id_from_name(picked.id);
+    const feature = layerRegistry[ds_id]["ol"].getSource().getFeatures().find(f => f.get('name') === picked.id);
+    if(feature){
+      const coordinates = [];
+      for (const coord of feature.getGeometry().getCoordinates()[0]){
+        const lonlat = ol.proj.toLonLat(coord);
+        coordinates.push(lonlat);
+      }
+      
+      const csGeom = new Cesium.GeometryInstance({
+          geometry: polygonFromGeoJSON(coordinates.flat()),
+          id: picked.id
+        })
+
+      const csHlFillColor = new Cesium.Color(hlFillColor[0]/255., hlFillColor[1]/255., hlFillColor[2]/255., hlFillColor[3]);
+      const material = new Cesium.Material({
+        fabric: {
+          type: 'Color',
+          uniforms: {
+            color: csHlFillColor
+          }
+        }
+      });
+
+      csHlPrimitive = new Cesium.GroundPrimitive({
+        geometryInstances: [csGeom],
+        appearance: new Cesium.MaterialAppearance({
+            material: material
+          })
+      })
+      csHlPrimitive.show = true;
+
+      scene.primitives.add(csHlPrimitive);
+    
+      const positions = [];
+      for (const point of coordinates){
+        positions.push(Cesium.Cartesian3.fromDegrees(point[0], point[1], 0))
+      }
+
+      const center =
+        Cesium.BoundingSphere.fromPoints(positions
+        ).center
+
+      popup.innerHTML = picked.id
+      
+      const cntrCoord = cartesianToOlCoordinate(center);
+      overlay.setPosition(cntrCoord);
+    }
+  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+document.getElementById('zoom-in').onclick = () => {
+    camera.zoomIn(camera.positionCartographic.height * 0.2);
+  };
+
+document.getElementById('zoom-out').onclick = () => {
+    camera.zoomOut(camera.positionCartographic.height * 0.2);
+  };
+} 
+}
+
+
 
 /*
 function addFeatureToCesium(feature) {
@@ -418,6 +508,7 @@ function createLabels(geojson, style) {
 
 
 async function createCesiumSourceNew(id, url, style) {
+  if(disable3D){return;};
   let url_is_zone = !url.includes("tiling_id")
   const geojson = await fetch(url).then(r => r.json());
   const polyPrimitive = createPolygonLayer(geojson, style);
@@ -680,16 +771,25 @@ const zoomIn3D = document.getElementById('zoom-in');
 const zoomOut3D = document.getElementById('zoom-out');
 
 document.getElementById('toggle-3d-icon').onclick = () => {
-  set3D(!is3D);
-  document.getElementById('toggle-3d-icon').innerText = is3D ? '\uD83D\uDDFA\uFE0F' : '\uD83C\uDF0D';
+  if (!disable3D){
+    set3D(!is3D);
+    document.getElementById('toggle-3d-icon').innerText = is3D ? '\uD83D\uDDFA\uFE0F' : '\uD83C\uDF0D';
 
-  if(is3D){
-    zoomIn3D.style.display = "block";
-    zoomOut3D.style.display = "block";
+    if(is3D){
+      zoomIn3D.style.display = "block";
+      zoomOut3D.style.display = "block";
+    }
+    else{
+      zoomIn3D.style.display = "none";
+      zoomOut3D.style.display = "none";
+    }
   }
   else{
-    zoomIn3D.style.display = "none";
-    zoomOut3D.style.display = "none";
+    Swal.fire({
+      icon: "error",
+      title: "3D view disabled.",
+      text: "3D view is not available in " + `${browser.getBrowserName()}` + ". You need to use Chrome."
+    });
   }
 }
 
@@ -705,7 +805,9 @@ const overlay = new ol.Overlay({
 map.addOverlay(overlay);
 
 map.on('click', function (evt) {
-    if (ol3d.getEnabled()) return;
+    if(!disable3D){
+      if (ol3d.getEnabled()) return;
+    }
     if (drawInteraction) return;
     
     map.forEachFeatureAtPixel(evt.pixel, function (feature) {
@@ -1157,12 +1259,13 @@ function createOlVectorLayer(url, style) {
 }
 
 async function registerDataset(id, url) {
+  const olURL = url + "&env=ol"
   if (!(id in styleRegistry)){
     styleRegistry[id] = defaultStyle
   }
   const style = styleRegistry[id];
   // 2D
-  const olLayer = createOlVectorLayer(url, style);
+  const olLayer = createOlVectorLayer(olURL, style);
   map.addLayer(olLayer);
 
   const olSource = olLayer.getSource();
@@ -1175,16 +1278,14 @@ async function registerDataset(id, url) {
   });
 
   // 3D
+  const csURL = url + "&env=cs"
+  const csPrimitives = await createCesiumSourceNew(id, csURL, style);
+  if(!(disable3D)){
+    scene.primitives.add(csPrimitives[0]);
+    scene.primitives.add(csPrimitives[1]);
+    scene.primitives.add(csPrimitives[2]);
+  }
   
-  let cs_url = url
-  if (!cs_url.includes("tiling_id")){
-    cs_url = cs_url + "&env=cs"
-  } 
-  
-  const csPrimitives = await createCesiumSourceNew(id, cs_url, style);
-  scene.primitives.add(csPrimitives[0]);
-  scene.primitives.add(csPrimitives[1]);
-  scene.primitives.add(csPrimitives[2]);
   //scene.globe.depthTestAgainstTerrain = false;
 
   layerRegistry[id] = {
@@ -1202,7 +1303,11 @@ function setLayerVisible(id, visible) {
 
   // 2D
   if (layer.ol) {
-    layer.ol.setVisible(!ol3d.getEnabled() && visible);
+    if(!disable3D){
+      layer.ol.setVisible(!ol3d.getEnabled() && visible);
+    }else{
+      layer.ol.setVisible(visible);
+    }
   }
 
   // 3D
@@ -1461,6 +1566,136 @@ tilingAppIcon.onclick = () => {
 };
 
 
+const addTilingAF = document.getElementById("addTilingAF");
+const delTilingAF = document.getElementById("delTilingAF");
+const selectAFTiling = document.getElementById("selectAFTiling");
+addTilingAF.onclick = async () => {
+  await doAddDel("AF", selectAFTiling.value, false);
+
+}
+delTilingAF.onclick = async () => {
+  await doAddDel("AF", selectAFTiling.value, true);
+}
+
+const addTilingAN = document.getElementById("addTilingAN");
+const delTilingAN = document.getElementById("delTilingAN");
+const selectANTiling = document.getElementById("selectANTiling");
+addTilingAN.onclick = async () => {
+  await doAddDel("AN", selectANTiling.value, false);
+
+}
+delTilingAN.onclick = async () => {
+  await doAddDel("AN", selectANTiling.value, true);
+}
+
+const addTilingAS = document.getElementById("addTilingAS");
+const delTilingAS = document.getElementById("delTilingAS");
+const selectASTiling = document.getElementById("selectASTiling");
+addTilingAS.onclick = async () => {
+  await doAddDel("AS", selectASTiling.value, false);
+
+}
+delTilingAS.onclick = async () => {
+  await doAddDel("AS", selectASTiling.value, true);
+}
+
+const addTilingEU = document.getElementById("addTilingEU");
+const delTilingEU = document.getElementById("delTilingEU");
+const selectEUTiling = document.getElementById("selectEUTiling");
+addTilingEU.onclick = async () => {
+  await doAddDel("EU", selectEUTiling.value, false);
+
+}
+delTilingEU.onclick = async () => {
+  await doAddDel("EU", selectEUTiling.value, true);
+}
+
+const addTilingNA = document.getElementById("addTilingNA");
+const delTilingNA = document.getElementById("delTilingNA");
+const selectNATiling = document.getElementById("selectNATiling");
+addTilingNA.onclick = async () => {
+  await doAddDel("NA", selectNATiling.value, false);
+
+}
+delTilingNA.onclick = async () => {
+  await doAddDel("NA", selectNATiling.value, true);
+}
+
+const addTilingOC = document.getElementById("addTilingOC");
+const delTilingOC = document.getElementById("delTilingOC");
+const selectOCTiling = document.getElementById("selectOCTiling");
+addTilingOC.onclick = async () => {
+  await doAddDel("OC", selectOCTiling.value, false);
+
+}
+delTilingOC.onclick = async () => {
+  await doAddDel("OC", selectOCTiling.value, true);
+}
+
+const addTilingSA = document.getElementById("addTilingSA");
+const delTilingSA = document.getElementById("delTilingSA");
+const selectSATiling = document.getElementById("selectSATiling");
+addTilingSA.onclick = async () => {
+  await doAddDel("SA", selectSATiling.value, false);
+
+}
+delTilingSA.onclick = async () => {
+  await doAddDel("SA", selectSATiling.value, true);
+}
+
+/*
+const selectAFTiling = document.getElementById("selectAFTiling");
+selectAFTiling.onclick = async (e) => {
+  if(e.target.tagName == "OPTION"){
+    await doAddDel("AF", e.target.value);
+  }
+}
+
+const selectANTiling = document.getElementById("selectANTiling");
+selectANTiling.onclick = async (e) => {
+  if(e.target.tagName == "OPTION"){
+    await doAddDel("AN", e.target.value);
+  }
+}
+
+const selectASTiling = document.getElementById("selectASTiling");
+selectASTiling.onclick = async (e) => {
+  if(e.target.tagName == "OPTION"){
+    await doAddDel("AS", e.target.value);
+  }
+}
+
+const selectEUTiling = document.getElementById("selectEUTiling");
+selectEUTiling.onclick = async (e) => {
+  console.log(e)
+    if(e.target.tagName == "OPTION"){
+      console.log("HELLO")
+      await doAddDel("EU", e.target.value);
+    }
+}
+
+const selectNATiling = document.getElementById("selectNATiling");
+selectNATiling.onclick = async (e) => {
+  if(e.target.tagName == "OPTION"){
+    await doAddDel("NA", e.target.value);
+  }
+}
+
+const selectOCTiling = document.getElementById("selectOCTiling");
+selectOCTiling.onclick = async (e) => {
+  if(e.target.tagName == "OPTION"){
+    await doAddDel("OC", e.target.value);
+  }
+}
+
+const selectSATiling = document.getElementById("selectSATiling");
+selectSATiling.onclick = async (e) => {
+  if(e.target.tagName == "OPTION"){
+    await doAddDel("SA", e.target.value);
+  }
+}*/
+
+
 const bboxBtn = document.getElementById('bboxBtn');
 const bboxWrapper = document.getElementById('bboxWrapper');
 bboxBtn.onclick = () => {
@@ -1536,80 +1771,10 @@ function moveCesiumCredits() {
   creditWrapper.style.paddingRight = '0';
 }
 
-const scene = ol3d.getCesiumScene();
-const handler = new Cesium.ScreenSpaceEventHandler(scene.canvas);
-const camera = scene.camera;
 
-handler.setInputAction(movement => {
-  if (!ol3d.getEnabled()) return;
 
-  if(csHlPrimitive){
-    scene.primitives.remove(csHlPrimitive);
-    csHlPrimitive.destroy();
-  }
 
-  //Object.keys(styleRegistry).forEach(ds_id => updateStyle(ds_id));
 
-  const picked = scene.pick(movement.position);
-  if (!picked || !picked.id) return;
-
-  const ds_id = ds_id_from_name(picked.id);
-  const feature = layerRegistry[ds_id]["ol"].getSource().getFeatures().find(f => f.get('name') === picked.id);
-  if(feature){
-    const coordinates = [];
-    for (const coord of feature.getGeometry().getCoordinates()[0]){
-      const lonlat = ol.proj.toLonLat(coord);
-      coordinates.push(lonlat);
-    }
-    
-    const csGeom = new Cesium.GeometryInstance({
-        geometry: polygonFromGeoJSON(coordinates.flat()),
-        id: picked.id
-      })
-
-    const csHlFillColor = new Cesium.Color(hlFillColor[0]/255., hlFillColor[1]/255., hlFillColor[2]/255., hlFillColor[3]);
-    const material = new Cesium.Material({
-      fabric: {
-        type: 'Color',
-        uniforms: {
-          color: csHlFillColor
-        }
-      }
-    });
-
-    csHlPrimitive = new Cesium.GroundPrimitive({
-      geometryInstances: [csGeom],
-      appearance: new Cesium.MaterialAppearance({
-          material: material
-        })
-    })
-    csHlPrimitive.show = true;
-
-    scene.primitives.add(csHlPrimitive);
-  
-    const positions = [];
-    for (const point of coordinates){
-      positions.push(Cesium.Cartesian3.fromDegrees(point[0], point[1], 0))
-    }
-
-    const center =
-      Cesium.BoundingSphere.fromPoints(positions
-      ).center
-
-    popup.innerHTML = picked.id
-    
-    const cntrCoord = cartesianToOlCoordinate(center);
-    overlay.setPosition(cntrCoord);
-  }
-}, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
-document.getElementById('zoom-in').onclick = () => {
-    camera.zoomIn(camera.positionCartographic.height * 0.2);
-  };
-
-document.getElementById('zoom-out').onclick = () => {
-    camera.zoomOut(camera.positionCartographic.height * 0.2);
-  };
 
 
 document.getElementById('strokeWidthSlider').oninput = (e) => {
@@ -1666,7 +1831,7 @@ function collapse(continent){
   }
  
 }
-
+/*
 function changeAddDel(continent){
   const delText = "\uD83D\uDEAE";
   const addText = "\u2795";
@@ -1680,39 +1845,39 @@ function changeAddDel(continent){
     liTiling.children[0].children[4].innerText = addText;
   }
 }
+*/
 
-async function doAddDelPerTiling(continent, tilingId){
-    const addText = "\u2795";
-    const liTiling = document.getElementById(continent);
-    const innerText = liTiling.children[0].children[4].innerText;
 
+
+async function doAddDelPerTiling(continent, tilingId, remove){
     const dsId = continent + "_" + tilingId;
-    if (innerText == addText){
+    if (!remove && !layerDeleteRegistry[continent]){
       url = `/grid?continent=${continent}&tiling_id=${tilingId}`
       await registerDataset(dsId, url)
     }
-    else {
+    else if (remove) {
       map.removeLayer(layerRegistry[dsId]["ol"]);
-      scene.primitives.remove(layerRegistry[dsId]["cesium"][0]);
-      scene.primitives.remove(layerRegistry[dsId]["cesium"][1]);
-      scene.primitives.remove(layerRegistry[dsId]["cesium"][2]);
+      if(!disable3D){
+        scene.primitives.remove(layerRegistry[dsId]["cesium"][0]);
+        scene.primitives.remove(layerRegistry[dsId]["cesium"][1]);
+        scene.primitives.remove(layerRegistry[dsId]["cesium"][2]);
+      }
       delete layerRegistry[dsId];
       delete styleRegistry[dsId];
     }
 }
 
-function doAddDel(continent){
-  const tilingId = document.getElementById(`${continent}Select`).value;
+async function doAddDel(continent, tilingIdSel, remove){
   let tilingIdsAddDel = null;
-  if(tilingId == "all"){
+  if(tilingIdSel == "all"){
     tilingIdsAddDel = tiling_levels;
   }
   else{
-    tilingIdsAddDel = [tilingId];
+    tilingIdsAddDel = [tilingIdSel];
   }
   
   for(const tilingIdAddDel of tilingIdsAddDel){
-    doAddDelPerTiling(continent, tilingIdAddDel);
+    await doAddDelPerTiling(continent, tilingIdAddDel, remove);
   }
 
   renderLayerSwitcher();
@@ -2002,6 +2167,8 @@ function updateStyle(ds_id){
       });
   }
 
+  if(disable3D){return};
+
   const csPrimitives = layerRegistry[ds_id]["cesium"]
 
   rgb = hexToRgb(style.fillColor)
@@ -2183,4 +2350,9 @@ handler.setInputAction((movement) => {
 }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
 */
 
+async function init3d(){
+  await create3d();
+}
+
+init3d();
 initLayers();

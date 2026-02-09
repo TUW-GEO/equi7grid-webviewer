@@ -12,10 +12,11 @@ def limit_geog_poly(geom: shapely.Geometry) -> shapely.Geometry:
     limits_poly = shapely.Polygon([(-179.9, -84), (179.9, -84), (179.9, 84), (-179.9, 84)])
     return shapely.intersection(geom, limits_poly)
 
-def generate_gdf(e7grid, continent, tiling_id) -> gpd.GeoDataFrame:
+def generate_gdf(e7grid, continent, tiling_id, max_seg_len=None) -> gpd.GeoDataFrame:
     gdf = e7grid[continent].to_geodataframe(tiling_ids = [tiling_id])
-    for i, row in gdf.iterrows():
-        gdf.at[i, "geometry"] = shapely.segmentize(orient(row["geometry"]), max_segment_length=MAX_SEG_LEN)
+    if max_seg_len is not None:
+        for i, row in gdf.iterrows():
+            gdf.at[i, "geometry"] = shapely.segmentize(orient(row["geometry"]), max_segment_length=max_seg_len)
     gdf = gdf.to_crs(4326)
     new_rows = {"name": [], "geometry": []}
     for i, row in gdf.iterrows():
@@ -38,8 +39,12 @@ def generate_grids():
     for tiling in tilings:
         for continent in continents:
             e7grid = get_standard_equi7grid(500)
-            gdf = generate_gdf(e7grid, continent, tiling)
-            filepath = Path(__file__).parent.parent / "data" / f"{continent}_{tiling}.parquet"
+            gdf = generate_gdf(e7grid, continent, tiling, max_seg_len=None)
+            filepath = Path(__file__).parent.parent / "data" / f"{continent}_{tiling}_cs.parquet"
+            gdf.to_parquet(filepath)
+
+            gdf = generate_gdf(e7grid, continent, tiling, max_seg_len=MAX_SEG_LEN)
+            filepath = Path(__file__).parent.parent / "data" / f"{continent}_{tiling}_ol.parquet"
             gdf.to_parquet(filepath)
 
 

@@ -117,95 +117,106 @@
           <li id="AF", draggable="true" class="continent-item">
           <div id="AF-header" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling" onclick="collapse('AF')">➖</span>
           <span class="label">Africa (AF)</span>
-          <span class="doAddDel" onclick="doAddDel('AF')">🔄</span>
-          <span class="selectTiling"><select id="AFSelect">
+          <span class="selectTiling"><select id="selectAFTiling">
             <option value="T6">T6</option>
             <option value="T3">T3</option>
             <option value="T1">T1</option>
             <option value="all">all</option>
           </select>
         </span>
-        <span class="changeAddDel" onclick="changeAddDel('AF')">🚮</span>
+        <span class="doAddDel" id="addTilingAF">➕</span>
+        <span class="changeAddDel" id="delTilingAF">🚮</span>
       </div>
           </li>
 
           <li id="AN", draggable="true" class="continent-item">
           <div id="AN-header" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling" onclick="collapse('AN')">➖</span>
           <span class="label">Antarctica (AN)</span>
-          <span class="doAddDel" onclick="doAddDel('AN')">🔄</span>
-          <span class="selectTiling"><select id="ANSelect">
+          <span class="selectTiling"><select id="selectANTiling">
             <option value="T6">T6</option>
             <option value="T3">T3</option>
             <option value="T1">T1</option>
             <option value="all">all</option>
           </select>
         </span>
-        <span class="changeAddDel" onclick="changeAddDel('AN')">🚮</span></div>
+        <span class="doAddDel" id="addTilingAN">➕</span>
+        <span class="changeAddDel" id="delTilingAN">🚮</span>
+      </div>
           </li>
 
           <li id="AS", draggable="true" class="continent-item">
           <div id="AS-header" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling" onclick="collapse('AS')">➖</span>
-          <span class="label">Asia (AS)</span><span class="doAddDel" onclick="doAddDel('AS')">🔄</span>
-          <span class="selectTiling"><select id="ASSelect">
+          <span class="label">Asia (AS)</span>
+          <span class="selectTiling"><select id="selectASTiling">
             <option value="T6">T6</option>
             <option value="T3">T3</option>
             <option value="T1">T1</option>
             <option value="all">all</option>
           </select>
         </span>
-        <span class="changeAddDel" onclick="changeAddDel('AS')">🚮</span></div>
+        <span class="doAddDel" id="addTilingAS">➕</span>
+        <span class="changeAddDel" id="delTilingAS">🚮</span>
+      </div>
           </li>
 
           <li id="EU", draggable="true" class="continent-item">
           <div id="EU-header" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling" onclick="collapse('EU')">➖</span>
-          <span class="label">Europe (EU)</span><span class="doAddDel" onclick="doAddDel('EU')">🔄</span>
-          <span class="selectTiling"><select id="EUSelect">
+          <span class="label">Europe (EU)</span>
+          <span class="selectTiling"><select id="selectEUTiling">
             <option value="T6">T6</option>
             <option value="T3">T3</option>
             <option value="T1">T1</option>
             <option value="all">all</option>
           </select>
         </span>
-        <span class="changeAddDel" onclick="changeAddDel('EU')">🚮</span></div>
+        <span class="doAddDel" id="addTilingEU">➕</span>
+        <span class="changeAddDel" id="delTilingEU">🚮</span>
+      </div>
           </li>
 
           <li id="NA", draggable="true" class="continent-item">
           <div id="NA-header" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling" onclick="collapse('NA')">➖</span>
-          <span class="label">North Am. (NA)</span><span class="doAddDel" onclick="doAddDel('NA')">🔄</span>
-          <span class="selectTiling"><select id="NASelect">
+          <span class="label">North Am. (NA)</span>
+          <span class="selectTiling"><select id="selectNATiling">
             <option value="T6">T6</option>
             <option value="T3">T3</option>
             <option value="T1">T1</option>
             <option value="all">all</option>
           </select>
         </span>
-        <span class="changeAddDel" onclick="changeAddDel('NA')">🚮</span></div>
+        <span class="doAddDel" id="addTilingNA">➕</span>
+        <span class="changeAddDel" id="delTilingNA">🚮</span>
+      </div>
           </li>
 
           <li id="OC", draggable="true" class="continent-item">
           <div id="OC-header" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling" onclick="collapse('OC')">➖</span>
-          <span class="label">Oceania (OC)</span><span class="doAddDel" onclick="doAddDel('OC')">🔄</span>
-          <span class="selectTiling"><select id="OCSelect">
+          <span class="label">Oceania (OC)</span>
+          <span class="selectTiling"><select id="selectOCTiling">
             <option value="T6">T6</option>
             <option value="T3">T3</option>
             <option value="T1">T1</option>
             <option value="all">all</option>
           </select>
         </span>
-        <span class="changeAddDel" onclick="changeAddDel('OC')">🚮</span></div>
+        <span class="doAddDel" id="addTilingOC">➕</span>
+        <span class="changeAddDel" id="delTilingOC">🚮</span>
+      </div>
           </li>
 
           <li id="SA", draggable="true" class="continent-item">
           <div id="SA-header" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling" onclick="collapse('SA')">➖</span>
-          <span class="label">South Am. (SA)</span><span class="doAddDel" onclick="doAddDel('SA')">🔄</span>
-          <span class="selectTiling"><select id="SASelect">
+          <span class="label">South Am. (SA)</span>
+          <span class="selectTiling"><select id="selectSATiling">
             <option value="T6">T6</option>
             <option value="T3">T3</option>
             <option value="T1">T1</option>
             <option value="all">all</option>
           </select>
         </span>
-        <span class="changeAddDel" onclick="changeAddDel('SA')">🚮</span></div>
+        <span class="doAddDel" id="addTilingSA">➕</span>
+        <span class="changeAddDel" id="delTilingSA">🚮</span>
+      </div>
           </li>
         </ul>
     </div>
@@ -276,6 +287,7 @@
 
     <div id="popup" class="ol-popup"></div> 
 
+    <script src="https://unpkg.com/bowser@2.7.0/es5.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://cdn.jsdelivr.net/npm/proj4/dist/proj4.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/ol/dist/ol.js"></script>
