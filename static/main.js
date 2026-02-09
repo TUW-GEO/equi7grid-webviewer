@@ -14,6 +14,7 @@ let activeGrid = null;
 let tileQueryOp = null;
 let drawInteraction;
 let lastPointerCoord = null;
+let stdSampling = 500;
 
 let ol3d;
 let scene;
@@ -219,6 +220,7 @@ async function create3d(){
     if (!picked || !picked.id) return;
 
     const ds_id = ds_id_from_name(picked.id);
+    if(ds_id.includes("ZONE")){return};
     const feature = layerRegistry[ds_id]["ol"].getSource().getFeatures().find(f => f.get('name') === picked.id);
     if(feature){
       const coordinates = [];
@@ -507,14 +509,20 @@ function createLabels(geojson, style) {
 }
 
 
-async function createCesiumSourceNew(id, url, style) {
-  if(disable3D){return;};
-  let url_is_zone = !url.includes("tiling_id")
+async function createCesiumSourceNew(id, url, style, createDs) {
+  const csPrimitives = null;
+  if(disable3D || !createDs){return csPrimitives;};
   const geojson = await fetch(url).then(r => r.json());
   const polyPrimitive = createPolygonLayer(geojson, style);
   const outlinePrimitive = createOutlines(geojson, style);
   const labelPrimitive = createLabels(geojson, style);
+  polyPrimitive.show = false;
+  outlinePrimitive.show = false;
   labelPrimitive.show = false;
+
+  scene.primitives.add(polyPrimitive);
+  scene.primitives.add(outlinePrimitive);
+  scene.primitives.add(labelPrimitive);
   
   return [polyPrimitive, outlinePrimitive, labelPrimitive]
 }
@@ -739,10 +747,50 @@ function getRandomColor() {
   return color;
 }
 
-function set3D(enabled) {
-  is3D = enabled;
-  ol3d.setEnabled(enabled);
 
+async function addZones3d(dsId){
+  const layer = layerRegistry[dsId];
+  const style = styleRegistry[dsId];
+  const continent = dsId.split("_")[0]
+  const csURL = `/grid?continent=${continent}&env=cs`;
+  const createDs = layer.visible;
+  const csPrimitives = await createCesiumSourceNew(dsId, csURL, style, createDs);
+  layer.cesium = csPrimitives;
+  if(layer.cesium){
+    layer.cesium[0].show = true;
+    layer.cesium[1].show = true;
+  }
+}
+
+function delZones3d(dsId){
+  const layer = layerRegistry[dsId];
+  if(layer.cesium){
+      for(const primitive of layer.cesium){
+        scene.primitives.remove(primitive);
+        primitive.destroy();
+      }
+      layer.cesium = null;
+  } 
+}
+
+async function updateZones3d(addZone){
+  for(const dsId of Object.keys(layerRegistry)){
+    if(!dsId.includes("ZONE")){continue;};
+    if(addZone){
+      addZones3d(dsId);
+    }else{
+      delZones3d(dsId);
+    }
+  }
+}
+
+async function set3D(enabled) {
+  is3D = enabled;
+
+  await updateZones3d(enabled);
+
+  ol3d.setEnabled(enabled);
+  
   Object.values(layerRegistry).forEach(layer => {
     if (layer.ol) {
       layer.ol.setVisible(!enabled && layer.visible);
@@ -865,9 +913,13 @@ function ds_id_from_name(name){
 function selectStyle(feature) {
   if(!tileQueryOp){
     ds_id = ds_id_from_name(feature.getProperties().name)
-    const selectedStyle = createLabelStyle(feature, styleRegistry[ds_id])
-    selectedStyle.getFill().setColor(hlFillColor);
+    const selectedStyle = createLabelStyle(feature, ds_id)
+    if(ds_id.includes("ZONE")){
+      return selectedStyle;
+    }else{
+      selectedStyle.getFill().setColor(hlFillColor);
     return selectedStyle;
+    }
   }
 }
 
@@ -983,7 +1035,7 @@ function highlightTile(tile){
     ds_id = ds_id_from_name(tile);
     const feature = layerRegistry[ds_id]["ol"].getSource().getFeatures().find(f => f.get('name') === tile);
     if(feature){
-      const selectedStyle = createLabelStyle(feature, styleRegistry[ds_id])
+      const selectedStyle = createLabelStyle(feature, ds_id)
       selectedStyle.getFill().setColor(hlFillColor);
       feature.setStyle(selectedStyle);
 
@@ -1115,6 +1167,18 @@ e7tile = Equi7Tile(**json_dict)
 }
 
 document.getElementById('queryTiles').onclick = async () => {
+    const sampling = document.getElementById("samplingInput").value;
+    if (sampling){
+      if(sampling != stdSampling){
+        await fetch(
+        `/sampling?sampling=${sampling}`
+      )
+      stdSampling = sampling;
+      }
+    } 
+    
+    console.log(stdSampling);
+
     updateStyles();
     if(!tileQueryOp){
         const bboxWrapper = document.getElementById('bboxWrapper');
@@ -1205,7 +1269,9 @@ document.getElementById('queryTiles').onclick = async () => {
     //document.getElementById('tileResults').innerText = `${data}`;
     };
 
-function createLabelStyle(feature, style) {
+function createLabelStyle(feature, dsId) {
+  const style = styleRegistry[dsId];
+
   rgb = hexToRgb(style.fillColor)
   rgba = [rgb.r, rgb.g, rgb.b, style.alpha]
   return new ol.style.Style({
@@ -1236,7 +1302,7 @@ function applyCesiumLabels(csPrimitives, activate) {
 }
 
 
-function createOlVectorLayer(url, style) {
+function createOlVectorLayer(url, dsId) {
   const source = new ol.source.Vector({
       url,
       format: new ol.format.GeoJSON()
@@ -1247,7 +1313,7 @@ function createOlVectorLayer(url, style) {
     visible: false
   });
 
-  vl.setStyle(feature => createLabelStyle(feature, style));
+  vl.setStyle(feature => createLabelStyle(feature, dsId));
 
   source.loadFeatures(
     map.getView().calculateExtent(map.getSize()),
@@ -1261,11 +1327,11 @@ function createOlVectorLayer(url, style) {
 async function registerDataset(id, url) {
   const olURL = url + "&env=ol"
   if (!(id in styleRegistry)){
-    styleRegistry[id] = defaultStyle
+    styleRegistry[id] = {...defaultStyle};
   }
   const style = styleRegistry[id];
   // 2D
-  const olLayer = createOlVectorLayer(olURL, style);
+  const olLayer = createOlVectorLayer(olURL, id);
   map.addLayer(olLayer);
 
   const olSource = olLayer.getSource();
@@ -1279,13 +1345,9 @@ async function registerDataset(id, url) {
 
   // 3D
   const csURL = url + "&env=cs"
-  const csPrimitives = await createCesiumSourceNew(id, csURL, style);
-  if(!(disable3D)){
-    scene.primitives.add(csPrimitives[0]);
-    scene.primitives.add(csPrimitives[1]);
-    scene.primitives.add(csPrimitives[2]);
-  }
-  
+  const isZone = !url.includes("tiling_id");
+  const csPrimitives = await createCesiumSourceNew(id, csURL, style, !isZone);
+
   //scene.globe.depthTestAgainstTerrain = false;
 
   layerRegistry[id] = {
@@ -1295,11 +1357,20 @@ async function registerDataset(id, url) {
   };
 }
 
-function setLayerVisible(id, visible) {
+async function setLayerVisible(id, visible) {
   const layer = layerRegistry[id];
   if (!layer) return;
-
   layer.visible = visible;
+
+  const isZone = id.includes("ZONE");
+  if(is3D && isZone && visible){
+    await addZones3d(id);
+  }
+  else if(is3D && isZone && !visible){
+    delZones3d(id);
+  }
+  
+  
 
   // 2D
   if (layer.ol) {
@@ -1570,8 +1641,9 @@ const addTilingAF = document.getElementById("addTilingAF");
 const delTilingAF = document.getElementById("delTilingAF");
 const selectAFTiling = document.getElementById("selectAFTiling");
 addTilingAF.onclick = async () => {
+  startLoader();
   await doAddDel("AF", selectAFTiling.value, false);
-
+  endLoader();
 }
 delTilingAF.onclick = async () => {
   await doAddDel("AF", selectAFTiling.value, true);
@@ -1581,8 +1653,9 @@ const addTilingAN = document.getElementById("addTilingAN");
 const delTilingAN = document.getElementById("delTilingAN");
 const selectANTiling = document.getElementById("selectANTiling");
 addTilingAN.onclick = async () => {
+  startLoader();
   await doAddDel("AN", selectANTiling.value, false);
-
+  endLoader();
 }
 delTilingAN.onclick = async () => {
   await doAddDel("AN", selectANTiling.value, true);
@@ -1592,8 +1665,9 @@ const addTilingAS = document.getElementById("addTilingAS");
 const delTilingAS = document.getElementById("delTilingAS");
 const selectASTiling = document.getElementById("selectASTiling");
 addTilingAS.onclick = async () => {
+  startLoader();
   await doAddDel("AS", selectASTiling.value, false);
-
+  endLoader();
 }
 delTilingAS.onclick = async () => {
   await doAddDel("AS", selectASTiling.value, true);
@@ -1603,8 +1677,9 @@ const addTilingEU = document.getElementById("addTilingEU");
 const delTilingEU = document.getElementById("delTilingEU");
 const selectEUTiling = document.getElementById("selectEUTiling");
 addTilingEU.onclick = async () => {
+  startLoader();
   await doAddDel("EU", selectEUTiling.value, false);
-
+  endLoader();
 }
 delTilingEU.onclick = async () => {
   await doAddDel("EU", selectEUTiling.value, true);
@@ -1614,8 +1689,9 @@ const addTilingNA = document.getElementById("addTilingNA");
 const delTilingNA = document.getElementById("delTilingNA");
 const selectNATiling = document.getElementById("selectNATiling");
 addTilingNA.onclick = async () => {
+  startLoader();
   await doAddDel("NA", selectNATiling.value, false);
-
+  endLoader();
 }
 delTilingNA.onclick = async () => {
   await doAddDel("NA", selectNATiling.value, true);
@@ -1625,8 +1701,9 @@ const addTilingOC = document.getElementById("addTilingOC");
 const delTilingOC = document.getElementById("delTilingOC");
 const selectOCTiling = document.getElementById("selectOCTiling");
 addTilingOC.onclick = async () => {
+  startLoader();
   await doAddDel("OC", selectOCTiling.value, false);
-
+  endLoader();
 }
 delTilingOC.onclick = async () => {
   await doAddDel("OC", selectOCTiling.value, true);
@@ -1636,8 +1713,9 @@ const addTilingSA = document.getElementById("addTilingSA");
 const delTilingSA = document.getElementById("delTilingSA");
 const selectSATiling = document.getElementById("selectSATiling");
 addTilingSA.onclick = async () => {
+  startLoader();
   await doAddDel("SA", selectSATiling.value, false);
-
+  endLoader();
 }
 delTilingSA.onclick = async () => {
   await doAddDel("SA", selectSATiling.value, true);
@@ -1808,12 +1886,6 @@ function labelTiles(checked){
 
 function showZones(checked){
   continents.forEach(continent => setLayerVisible(continent + "_ZONE", checked));
-}
-
-async function changeSampling(input){
-  await fetch(
-        `/sampling?sampling=${input.value}`
-    )
 }
 
 
@@ -2151,17 +2223,27 @@ function hexToRgb(hex) {
 
 
 function updateStyle(ds_id){
+  const fillColorInput = document.getElementById(`FillColor_${ds_id}`);
+  if(fillColorInput){
+    fillColorInput.value = styleRegistry[ds_id]["fillColor"];
+    const strokeColorInput = document.getElementById(`StrokeColor_${ds_id}`);
+    strokeColorInput.value = styleRegistry[ds_id]["strokeColor"];
+  }
+
   if(ds_id.includes("ZONE")){
     return
   }
   const style = styleRegistry[ds_id];
 
-  layerRegistry[ds_id]["ol"].setStyle(feature => createLabelStyle(feature, style));
+  //console.log(ds_id);
+  //console.log(style);
+
+  layerRegistry[ds_id]["ol"].setStyle(feature => createLabelStyle(feature, ds_id));
   if(queryData){
     queryData.forEach(tile => {
       const feature = layerRegistry[ds_id]["ol"].getSource().getFeatures().find(f => f.get('name') === tile);
       if(feature){
-        const selectedStyle = createLabelStyle(feature, styleRegistry[ds_id])
+        const selectedStyle = createLabelStyle(feature, ds_id)
         feature.setStyle(selectedStyle);
       }
       });
@@ -2170,6 +2252,8 @@ function updateStyle(ds_id){
   if(disable3D){return};
 
   const csPrimitives = layerRegistry[ds_id]["cesium"]
+
+  if(csPrimitives == null){return};
 
   rgb = hexToRgb(style.fillColor)
   rgba = [rgb.r, rgb.g, rgb.b, style.alpha]
@@ -2198,13 +2282,6 @@ function updateStyle(ds_id){
 
   csPrimitives[0].appearance.material = csFillMaterial;
   csPrimitives[1].appearance.material = csStrokeMaterial;
-
-  const fillColorInput = document.getElementById(`FillColor_${ds_id}`);
-  if(fillColorInput){
-    fillColorInput.value = styleRegistry[ds_id]["fillColor"];
-    const strokeColorInput = document.getElementById(`StrokeColor_${ds_id}`);
-    strokeColorInput.value = styleRegistry[ds_id]["strokeColor"];
-  }
   /*
   const attributes = csPrimitives[0].getGeometryInstanceAttributes("EU500M_E048N012T6");
   attributes.color = csFillColor;
@@ -2228,8 +2305,11 @@ function updateStyle(ds_id){
 }
 
 function updateFillColor(ds_id, fillColor){
+  console.log("HEELLOO")
   styleRegistry[ds_id].fillColor = fillColor;
+  console.log(styleRegistry);
   updateStyle(ds_id);
+  console.log(styleRegistry);
 }
 
 function updateStrokeWidth(ds_id, strokeWidth){

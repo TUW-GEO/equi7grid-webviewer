@@ -60,9 +60,6 @@
         <div id="label-tiles-switch-container">
           Show tile labels <input type="checkbox" id="tileLabelCheckbox" onchange="labelTiles(this.checked)"/>
         </div>
-        <div id="sampling-switch-container">
-          Change sampling [m] <input type="text" id="samplingInput" onchange="changeSampling(this)" placeholder="500">
-        </div>
       </div>
     </div>
 
@@ -231,7 +228,9 @@
       <button id="bboxBtn", title="Bounding box">&#x2328;&#xFE0F;</button>
       <button id="bboxDrawBtn", title="Draw bounding box">🔲</button>
       <button id="polyDrawBtn", title="Draw polygon">✏️</button>
-      <span class="selectTilingTiles" style="float: right; margin-right: 20px; margin-top: 20px;"><select id="tilesTiling">
+      <span style="margin-left: 45px; margin-top: 20px;">
+        <input type="text" id="samplingInput" placeholder="500"> [m] 
+        <select id="tilesTiling">
           </select>
         </span>
       </div>

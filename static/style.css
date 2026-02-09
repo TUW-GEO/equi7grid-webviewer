@@ -1211,11 +1211,16 @@ input[type="color"]::-moz-color-swatch {
     margin-top: 20px;
 }
 
+#tilesTiling{
+    margin-left: 10px;
+}
+
 
 #samplingInput{
-    margin-right: 5px;
+    /*margin-right: 5px;
+    
+    float: right;*/
     text-align: right;
-    float: right;
-    width: 20%;
+    width: 10%;
 }
 

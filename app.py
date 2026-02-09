@@ -158,14 +158,16 @@ def update_sampling():
     global STD_E7
     global GRID_MAP
 
-    sampling = float(request.args["sampling"])
-    STD_SAMPLING = sampling
-    STD_E7 = get_standard_equi7grid(get_std_tilings())
+    try: 
+        STD_SAMPLING = float(request.args["sampling"])
+        STD_E7 = get_standard_equi7grid(get_std_tilings())
 
-    for tiling_id in GRID_MAP.keys():
-        reg_tiling_def = RegularTilingDefinition(name=tiling_id, tile_shape=GRID_MAP[tiling_id].EU[tiling_id].tile_size)
-        e7grid = get_user_equi7grid({tiling_id: STD_SAMPLING}, {tiling_id: reg_tiling_def})
-        GRID_MAP[tiling_id] = e7grid
+        for tiling_id in GRID_MAP.keys():
+            reg_tiling_def = RegularTilingDefinition(name=tiling_id, tile_shape=GRID_MAP[tiling_id].EU[tiling_id].tile_size)
+            e7grid = get_user_equi7grid({tiling_id: STD_SAMPLING}, {tiling_id: reg_tiling_def})
+            GRID_MAP[tiling_id] = e7grid
+    except ValueError:
+        pass
 
     return "Success"
 
