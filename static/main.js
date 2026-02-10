@@ -23,13 +23,12 @@ let camera;
 
 const layerRegistry = {}
 const styleRegistry = {}
-const layerDeleteRegistry = {"AF": false, "AN": false, "AS": false, "EU": false, "NA": false, "OC": false, "SA": false}
 const fontFamily = "Segoe UI, Tahoma, Geneva, Verdana, sans-serif";
 
 const hlFillColor = [223, 216, 17, 0.9]
 const hlStrokeColor = [255, 138, 5, 1.0]
 const continents = ["AF", "AN", "AS", "EU", "OC", "NA", "SA"]
-const tiling_levels = ["T6", "T3", "T1", "ZONE"]//, "T1"]
+const tilingIds = ["T6", "T3", "T1"]//, "T1"]
 const initTilingIds = ["T6"]
 const epsg_map = {27701: "AF", 27702: "AN", 27703:  "AS", 27704:  "EU", 
   27705:  "NA", 27706:  "OC", 27707:  "SA"}
@@ -1440,11 +1439,14 @@ async function loadGrid() {
   ds_id = continent + "_" + tiling_id
   if (!(ds_id in layerRegistry)){
     await registerDataset(ds_id, `/grid?continent=${continent}&tiling_id=${tiling_id}&tile_size=${tile_size}`)
-    if(!(tiling_id in tiling_levels)){
-      tiling_levels.push(tiling_id);
-    }
     renderLayerSwitcher();
     updateStyles();
+
+    const tilingElem = document.createElement("option");
+    tilingElem.value = tiling_id;
+    tilingElem.innerText = tiling_id;
+    const selectContTiling = document.getElementById(`select${continent}Tiling`);
+    selectContTiling.appendChild(tilingElem);
   }
 
   /*
@@ -1923,11 +1925,12 @@ function changeAddDel(continent){
 
 async function doAddDelPerTiling(continent, tilingId, remove){
     const dsId = continent + "_" + tilingId;
-    if (!remove && !layerDeleteRegistry[continent]){
+    const dsExists = Object.keys(layerRegistry).includes(dsId)
+    if (!remove && !dsExists){
       url = `/grid?continent=${continent}&tiling_id=${tilingId}`
       await registerDataset(dsId, url)
     }
-    else if (remove) {
+    else if (remove && dsExists) {
       map.removeLayer(layerRegistry[dsId]["ol"]);
       if(!disable3D){
         scene.primitives.remove(layerRegistry[dsId]["cesium"][0]);
@@ -1936,13 +1939,27 @@ async function doAddDelPerTiling(continent, tilingId, remove){
       }
       delete layerRegistry[dsId];
       delete styleRegistry[dsId];
+
+      
+      if(!tilingIds.includes(tilingId)){
+      const selectContTiling = document.getElementById(`select${continent}Tiling`);
+      let childToRemove = null;
+      let children = selectContTiling.children;
+      for (var i = 0; i < children.length; i++) {
+        if(children[i].value == tilingId){
+          childToRemove = children[i];
+          break
+        }
+      }
+      selectContTiling.removeChild(childToRemove);
+     }
     }
 }
 
 async function doAddDel(continent, tilingIdSel, remove){
   let tilingIdsAddDel = null;
   if(tilingIdSel == "all"){
-    tilingIdsAddDel = tiling_levels;
+    tilingIdsAddDel = tilingIds;
   }
   else{
     tilingIdsAddDel = [tilingIdSel];
@@ -1963,8 +1980,20 @@ function renderLayerSwitcher() {
   list.innerHTML = '';
   */
   const dsIds = Object.keys(layerRegistry)
-  const tilingIds = tiling_levels;
+  const tilingIdsContMap = {}
+  for(const continent of continents){
+    tilingIdsContMap[continent] = []
+  }
 
+  for(const dsId of dsIds){
+    const continent = dsId.split("_")[0]
+    const tilingId = dsId.split("_")[1]
+    tilingIdsContMap[continent].push(tilingId)
+  }
+
+  for(const continent of continents){
+    tilingIdsContMap[continent].sort()
+  }
   /*
   dsIds.forEach(dsId => {
     const tilingId = dsId.split("_")[1];
@@ -1973,7 +2002,7 @@ function renderLayerSwitcher() {
     }
   }) 
   */
-  for(const continent of continents){
+  for(const continent of Object.keys(tilingIdsContMap)){
     const continentLi = document.getElementById(continent);
     const continentId = continent + "Ul";
     let tilingList = document.getElementById(continentId);
@@ -1983,37 +2012,36 @@ function renderLayerSwitcher() {
     tilingList.innerHTML = "";
     tilingList.id = continentId;
     tilingList.className = "tilingList";
-    for(const tilingId of tilingIds){
+    for(const tilingId of tilingIdsContMap[continent]){
       const dsId = continent + "_" + tilingId
-      if(dsIds.includes(dsId)){
-        const li = document.createElement('li');
-        li.className = 'tiling-item';
-        li.draggable = true;
-        li.dataset.layerId = dsId;
+      const li = document.createElement('li');
+      li.className = 'tiling-item';
+      li.draggable = true;
+      li.dataset.layerId = dsId;
 
-        if(tilingId == "ZONE"){
-          li.innerHTML = `<input type="checkbox"></input> ${tilingId}`
-        }
-        else{
-          li.innerHTML = `
-        <input type="checkbox"></input>
-        ${tilingId}
-        <span style="float: right; margin-right: 10px;">
-        Fill:
-        <input id="FillColor_${dsId}" type="color" oninput="updateFillColor('${dsId}', this.value);"></input>
-        Stroke:
-        <input id="StrokeColor_${dsId}" type="color" oninput="updateStrokeColor('${dsId}', this.value);"></input>
-        </span>
-        `;
-        }
-        
-
-        li.querySelector('input').onchange = e => {
-          setLayerVisible(dsId, e.target.checked);
-        };
-        // style="float: right; margin-right: 10px;"
-        tilingList.appendChild(li);
+      if(tilingId == "ZONE"){
+        li.innerHTML = `<input type="checkbox"></input> ${tilingId}`
       }
+      else{
+        li.innerHTML = `
+      <input type="checkbox"></input>
+      ${tilingId}
+      <span style="float: right; margin-right: 10px;">
+      Fill:
+      <input id="FillColor_${dsId}" type="color" oninput="updateFillColor('${dsId}', this.value);"></input>
+      Stroke:
+      <input id="StrokeColor_${dsId}" type="color" oninput="updateStrokeColor('${dsId}', this.value);"></input>
+      </span>
+      `;
+      }
+      
+
+      li.querySelector('input').onchange = e => {
+        setLayerVisible(dsId, e.target.checked);
+      };
+      // style="float: right; margin-right: 10px;"
+      tilingList.appendChild(li);
+      
     }
     enableDragAndDrop(tilingList, '.tiling-item');
     continentLi.appendChild(tilingList);
