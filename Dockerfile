@@ -27,8 +27,8 @@ RUN uv venv --python 3.12
 RUN --mount=type=bind,source=pyproject.toml,target=pyproject.toml \ 
     uv pip install -r pyproject.toml --all-extras
 
-# Then, add the rest of the project source code and install it
-# Installing separately from its dependencies allows optimal layer caching
+
+# Copy local project
 COPY . /app
 
 # Place executables in the environment at the front of the path

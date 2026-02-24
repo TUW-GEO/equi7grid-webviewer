@@ -751,7 +751,7 @@ async function addZones3d(dsId){
   const layer = layerRegistry[dsId];
   const style = styleRegistry[dsId];
   const continent = dsId.split("_")[0]
-  const csURL = `/grid?continent=${continent}&env=cs`;
+  const csURL = `/createGeoms?continent=${continent}&env=cs`;
   const createDs = layer.visible;
   const csPrimitives = await createCesiumSourceNew(dsId, csURL, style, createDs);
   layer.cesium = csPrimitives;
@@ -1079,7 +1079,7 @@ document.getElementById('copy-traffos-icon').onclick = async () => {
   for (const tileItem of tileList.childNodes){
       const tilename = tileItem.id;
       const res = await fetch(
-        `/traffo?tilename=${tilename}`
+        `/getGeoTraffo?tilename=${tilename}`
       );
       const data = await res.json();
       traffos[tilename] = data;
@@ -1101,7 +1101,7 @@ document.getElementById('copy-e7tiles-icon').onclick = async () => {
   for (const tileItem of tileList.childNodes){
       const tilename = tileItem.id;
       const res = await fetch(
-        `/e7tile?tilename=${tilename}`
+        `/getTileDef?tilename=${tilename}`
       );
       const data = await res.json();
       e7tiles[tilename] = data;
@@ -1128,7 +1128,7 @@ for tilename, tile_json in json_dict.items():
 
 async function copyTraffo(tile){
   const res = await fetch(
-        `/traffo?tilename=${tile}`
+        `/getGeoTraffo?tilename=${tile}`
     );
   const data = await res.json();
   navigator.clipboard.writeText(data);
@@ -1144,7 +1144,7 @@ async function copyTraffo(tile){
 
 async function copyPython(tile){
   const res = await fetch(
-        `/e7tile?tilename=${tile}`
+        `/getTileDef?tilename=${tile}`
     );
   const data = await res.json();
   const code_template = ` 
@@ -1170,7 +1170,7 @@ document.getElementById('queryTiles').onclick = async () => {
     if (sampling){
       if(sampling != stdSampling){
         await fetch(
-        `/sampling?sampling=${sampling}`
+        `/UpdateSampling?sampling=${sampling}`
       )
       stdSampling = sampling;
       }
@@ -1200,7 +1200,7 @@ document.getElementById('queryTiles').onclick = async () => {
       const west = document.getElementById('bbox_w').value
       const north = document.getElementById('bbox_n').value
       res = await fetch(
-        `/tilesFromBbox?east=${east}&south=${south}&west=${west}&north=${north}&tiling_id=${tiling_id}`
+        `/queryTilesFromBbox?east=${east}&south=${south}&west=${west}&north=${north}&tiling_id=${tiling_id}`
     );
     }
     else{
@@ -1208,7 +1208,7 @@ document.getElementById('queryTiles').onclick = async () => {
       const wkt = new ol.format.WKT();
       const wktGeom = wkt.writeGeometry(feature.getGeometry());
       res = await fetch(
-        `/tilesFromWkt?wkt=${wktGeom}&tiling_id=${tiling_id}`
+        `/queryTilesFromWkt?wkt=${wktGeom}&tiling_id=${tiling_id}`
     );
     }
     
@@ -1394,7 +1394,7 @@ async function init_zones(){
     zoneStyle = {...defaultStyle};
     zoneStyle.fillColor = zoneColours[continent];
     styleRegistry[ds_id] = zoneStyle;
-    await registerDataset(ds_id, `/grid?continent=${continent}`);
+    await registerDataset(ds_id, `/createGeoms?continent=${continent}`);
   }
   renderLayerSwitcher();
 }
@@ -1415,7 +1415,7 @@ async function init_standard_grids(){
   for (const continent of continents){
     for (const tiling_level of initTilingIds){  
         const ds_id = continent + "_" + tiling_level
-        await registerDataset(ds_id, `/grid?continent=${continent}&tiling_id=${tiling_level}`);
+        await registerDataset(ds_id, `/createGeoms?continent=${continent}&tiling_id=${tiling_level}`);
     }
   }
   renderLayerSwitcher();
@@ -1438,7 +1438,7 @@ async function loadGrid() {
 
   ds_id = continent + "_" + tiling_id
   if (!(ds_id in layerRegistry)){
-    await registerDataset(ds_id, `/grid?continent=${continent}&tiling_id=${tiling_id}&tile_size=${tile_size}`)
+    await registerDataset(ds_id, `/createGeoms?continent=${continent}&tiling_id=${tiling_id}&tile_size=${tile_size}`)
     renderLayerSwitcher();
     updateStyles();
 
@@ -1927,7 +1927,7 @@ async function doAddDelPerTiling(continent, tilingId, remove){
     const dsId = continent + "_" + tilingId;
     const dsExists = Object.keys(layerRegistry).includes(dsId)
     if (!remove && !dsExists){
-      url = `/grid?continent=${continent}&tiling_id=${tilingId}`
+      url = `/createGeoms?continent=${continent}&tiling_id=${tilingId}`
       await registerDataset(dsId, url)
     }
     else if (remove && dsExists) {
