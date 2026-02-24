@@ -1,4 +1,5 @@
 from flask import Flask, jsonify, render_template, request
+import argparse
 import geopandas as gpd
 import shapely
 import shapely.wkt as swkt
@@ -14,7 +15,7 @@ from pytileproj.tiling_system import (
 )
 from pytileproj import ProjCoord
 from equi7grid import get_standard_equi7grid, get_user_equi7grid
-from equi7grid.create_grids import get_system_definitions
+from equi7grid._create_grids import get_system_definitions
 
 EPSG_MAP = {continent: sysdef.crs for continent, sysdef in get_system_definitions().items()}
 GRID_MAP = {}
@@ -186,4 +187,12 @@ def check_and_gen_data():
 
 if __name__ == "__main__":
     check_and_gen_data()
-    app.run(debug=True)
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--docker", help="app is launched inside docker", action="store_true")
+    args = parser.parse_args()
+
+    if args.docker:
+        app.run(host="172.17.0.2", port=5000, debug=True)
+    else:
+        app.run(debug=True)

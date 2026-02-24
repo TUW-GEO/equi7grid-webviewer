@@ -7,7 +7,7 @@ description = "Webviewer for Equi7Grid zone, tiling system, and tile display and
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "equi7grid @ git+https://github.com/TUW-GEO/Equi7grid.git@revamp-to-v1",
+    "equi7grid",
     "flask"
 ]
 classifiers = [
