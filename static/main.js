@@ -1,38 +1,36 @@
 
-//proj4.defs("EPSG:27704","+proj=aeqd +lat_0=53 +lon_0=24 +x_0=5837287.82 +y_0=2121415.696 +datum=WGS84 +units=m +no_defs +type=crs");
-//ol.proj.proj4.register(proj4);
-const browser = bowser.getParser(window.navigator.userAgent);
-console.log(`The current browser name is "${browser.getBrowserName()}"`)
-
-const disable3D = browser.getBrowserName() != "Chrome";
-let is3D = false;
+// ---------------------------
+// modifiable global variables
+// ---------------------------
+let map = null;
+let popup = null;
+let overlay = null;
 let reprojMouse = false;
 let toEqui7 = true;
 let queryData = null;
-let csHlPrimitive = null;
-let activeGrid = null;
 let tileQueryOp = null;
-let drawInteraction;
+let drawInteraction = null;
 let lastPointerCoord = null;
 let stdSampling = 500;
 
-let ol3d;
-let scene;
-let handler;
-let camera;
+// 2D settings
+let drawSource = null;
 
-const layerRegistry = {}
-const styleRegistry = {}
+// 3D settings
+let is3d = false;
+let ol3d = null;
+let scene = null;
+let handler = null;
+let camera = null;
+let csHlPrimitive = null;
+
+
+// -------------------------
+// constant global variables
+// -------------------------
+// style settings
 const fontFamily = "Segoe UI, Tahoma, Geneva, Verdana, sans-serif";
-
 const hlFillColor = [223, 216, 17, 0.9]
-const hlStrokeColor = [255, 138, 5, 1.0]
-const continents = ["AF", "AN", "AS", "EU", "OC", "NA", "SA"]
-const tilingIds = ["T6", "T3", "T1"]//, "T1"]
-const initTilingIds = ["T6"]
-const epsg_map = {27701: "AF", 27702: "AN", 27703:  "AS", 27704:  "EU", 
-  27705:  "NA", 27706:  "OC", 27707:  "SA"}
-
 const defaultStyle = {
   fillColor: "#ee869b",
   alpha: 0.4,
@@ -40,7 +38,6 @@ const defaultStyle = {
   strokeWidth: 2,
   show_labels: false
 };
-
 const zoneColours = {
   "AF": "#ac8abc",
   "AN": "#9ba2bc",
@@ -50,303 +47,351 @@ const zoneColours = {
   "OC": "#9bc5af",
   "SA": "#cc8fa1"
 }
+const styleRegistry = {}
+
+// grid settings
+const layerRegistry = {}
+const continents = ["AF", "AN", "AS", "EU", "OC", "NA", "SA"]
+const tilingIds = ["T6", "T3", "T1"]
+const initTilingIds = ["T6"]
+const epsgMap = {27701: "AF", 27702: "AN", 27703:  "AS", 27704:  "EU", 
+                 27705:  "NA", 27706:  "OC", 27707:  "SA"}
+
+// fetch browser
+const browser = bowser.getParser(window.navigator.userAgent);
+const disable3d = browser.getBrowserName() != "Chrome";
 
 
-const openfreemap = new ol.layer.Group()
+// ---------------
+// 2D map creation
+// ---------------
 
-const osmLayer = new ol.layer.Tile({
+function create2dOlMap(){
+  const osmLayer = new ol.layer.Tile({
     source: new ol.source.OSM()
-});
+  });
 
-let view = new ol.View({
+  let view = new ol.View({
     center: ol.proj.fromLonLat([11, 51]),
     zoom: 5
-});
+  });
 
-
-const olVectorStyle = new ol.style.Style({
-  fill: new ol.style.Fill({
-    color: 'rgba(0,0,255,0.4)'
-  }),
-  stroke: new ol.style.Stroke({
-    color: 'rgba(0,0,0,1)',
-    width: 2
-  })
-});
-
-const drawSource = new ol.source.Vector();
-
-const drawLayer = new ol.layer.Vector({
-  source: drawSource
-});
-
-drawLayer.setStyle(
-  new ol.style.Style({
-    stroke: new ol.style.Stroke({
-      color: '#0077ff',
-      width: 2
-    }),
-    fill: new ol.style.Fill({
-      color: 'rgba(0,119,255,0.2)'
+  drawSource = new ol.source.Vector();
+  const drawLayer = new ol.layer.Vector({
+    source: drawSource
+  });
+  drawLayer.setStyle(
+    new ol.style.Style({
+      stroke: new ol.style.Stroke({
+        color: '#0077ff',
+        width: 2
+      }),
+      fill: new ol.style.Fill({
+        color: 'rgba(0,119,255,0.2)'
+      })
     })
-  })
-);
+  );
+
+  map = new ol.Map({
+      target: 'map',
+      layers: [osmLayer],
+      view: view
+  });
+  map.addLayer(drawLayer);
+}
+
+function create2dPointerMove(){
+  map.on('pointermove', e => {
+    lastPointerCoord = e.coordinate;
+    const coord = ol.proj.toLonLat(e.coordinate);
+    document.getElementById('pointer-coords').innerHTML =
+      `<b>Lon:</b> ${coord[0].toFixed(4)}, <b>Lat:</b> ${coord[1].toFixed(4)}`;
+  });
+}
+
+function create2dSelectClick(){
+  const selectClick = new ol.interaction.Select({
+  condition: ol.events.click,
+    style: selectStyle
+  });
+  map.addInteraction(selectClick);
+}
+
+function create2dPopup(){
+  popup = document.getElementById('popup');
+  overlay = new ol.Overlay({
+    element: popup
+  });
+  map.addOverlay(overlay);
+}
+
+function create2dLeftClick(){
+  map.on('click', function (evt) {
+    if(!disable3d){
+      if (ol3d.getEnabled()) return;
+    }
+    if (drawInteraction) return;
+    
+    map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+        const props = feature.getProperties();
+        popup.innerHTML = props.name;
+        overlay.setPosition(evt.coordinate);
+    });
+  });
+}
+
+function create2dRightClick(){
+  map.getViewport().addEventListener('contextmenu', function (evt) {
+    evt.preventDefault();
+    if(drawInteraction){
+      if (tileQueryOp !== 'POLY-DRAW') return;
+      if (lastPointerCoord) {
+        drawInteraction.appendCoordinates([lastPointerCoord]);
+      }
+      drawInteraction.finishDrawing();
+    }
+    else{
+      const lonlat = ol.proj.toLonLat(map.getEventCoordinate(evt));
+      if (reprojMouse & toEqui7){
+        document.getElementById('x-coord-other').value = lonlat[0].toFixed(6);
+        document.getElementById('y-coord-other').value = lonlat[1].toFixed(6);
+        document.getElementById('other-crs').value = 4326;
+        document.getElementById('x-coord-e7').value = "";
+        document.getElementById('y-coord-e7').value = "";
+      }
+      navigator.clipboard.writeText(lonlat);
+
+      Swal.fire({
+        position: "top-end",
+        icon: "success",
+        title: '<span style="font-size: 18px;font-weight: bold;">Copied coordinate.</span>',
+        showConfirmButton: false,
+        timer: 1500,
+        width: "400px"
+      });
+    }
+  });
+}
+
+function createLabelStyle(feature, dsId) {
+  const style = styleRegistry[dsId];
+  rgb = hexToRgb(style.fillColor)
+  rgba = [rgb.r, rgb.g, rgb.b, style.alpha]
+  return new ol.style.Style({
+    fill: new ol.style.Fill({
+      color: rgba
+    }),
+    stroke: new ol.style.Stroke({
+      color: style.strokeColor,
+      width: style.strokeWidth
+    }),
+    text: style.show_labels ? new ol.style.Text({
+        text: feature.get('name'),
+        font: '12px ' + fontFamily,
+        fill: new ol.style.Fill({ color: '#000' }),
+        stroke: new ol.style.Stroke({
+          color: '#fff',
+          width: 3
+        }),
+        overflow: true
+      }) : null
+  });
+}
+
+function createOlVectorLayer(url, dsId) {
+  const vectorSource = new ol.source.Vector({
+      url,
+      format: new ol.format.GeoJSON()
+    })
+
+  const vectorLayer = new ol.layer.Vector({
+    source: vectorSource,
+    visible: false
+  });
+
+  vectorLayer.setStyle(feature => createLabelStyle(feature, dsId));
+  vectorSource.loadFeatures(
+    map.getView().calculateExtent(map.getSize()),
+    map.getView().getResolution(),
+    map.getView().getProjection()
+  );
+
+  return vectorLayer
+}
+
+function create2d(){
+  create2dOlMap();
+  create2dSelectClick();
+  create2dPointerMove();  
+  create2dPopup();
+  create2dLeftClick();
+  create2dRightClick();
+}
 
 
-const map = new ol.Map({
-    target: 'map',
-    layers: [osmLayer],
-    view: view
-});
-
-map.addLayer(drawLayer);
-
-function drawPolygon() {
-  if (drawInteraction) {
+// ----------------
+// 2D map functions
+// ----------------
+function drawPolygon(){
+  if (drawInteraction){
     map.removeInteraction(drawInteraction);
   }
-
   drawInteraction = new ol.interaction.Draw({
     source: drawSource,
     type: 'Polygon'
   });
-
   map.addInteraction(drawInteraction);
 }
 
-function drawBoundingBox() {
+function drawBoundingBox(){
   if (drawInteraction) {
     map.removeInteraction(drawInteraction);
   }
-
   drawInteraction = new ol.interaction.Draw({
     source: drawSource,
     type: 'Circle',
     geometryFunction: ol.interaction.Draw.createBox()
   });
-
   map.addInteraction(drawInteraction);
 }
 
-function clearDrawings() {
+function clearDrawings(){
   drawSource.clear();
 }
 
-document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape' && drawInteraction) {
+document.addEventListener('keydown', function (e){
+  if (e.key === 'Escape' && drawInteraction){
     drawInteraction.abortDrawing();
   }
 });
 
-/*
-const map = new ol.Map({
-  layers: [openfreemap],
-    view: new ol.View({ center: ol.proj.fromLonLat([13.388, 52.517]), zoom: 9.5 }),
-    target: 'map',
-})
-olms.apply(openfreemap, 'https://tiles.openfreemap.org/styles/positron')
-*/
-async function create3d(){
-  if (!disable3D){
-  ol3d = new olcs.OLCesium({ map, 
-    synchronize: false   // IMPORTANT: disable layer sync
-});
-
-  scene = ol3d.getCesiumScene();
-  handler = new Cesium.ScreenSpaceEventHandler(scene.canvas);
-  camera = scene.camera;
-
-  handler.setInputAction(movement => {
-    if (!ol3d.getEnabled()) return;
-
-    if(csHlPrimitive){
-      scene.primitives.remove(csHlPrimitive);
-      csHlPrimitive.destroy();
+function selectStyle(feature) {
+  if(!tileQueryOp){
+    const dsId = createDsIdFromName(feature.getProperties().name)
+    const selectedStyle = createLabelStyle(feature, dsId)
+    if(dsId.includes("ZONE")){
+      return selectedStyle;
+    }else{
+      selectedStyle.getFill().setColor(hlFillColor);
+    return selectedStyle;
     }
-
-  //Object.keys(styleRegistry).forEach(ds_id => updateStyle(ds_id));
-
-    const picked = scene.pick(movement.position);
-    if (!picked || !picked.id) return;
-
-    const ds_id = ds_id_from_name(picked.id);
-    if(ds_id.includes("ZONE")){return};
-    const feature = layerRegistry[ds_id]["ol"].getSource().getFeatures().find(f => f.get('name') === picked.id);
-    if(feature){
-      const coordinates = [];
-      for (const coord of feature.getGeometry().getCoordinates()[0]){
-        const lonlat = ol.proj.toLonLat(coord);
-        coordinates.push(lonlat);
-      }
-      
-      const csGeom = new Cesium.GeometryInstance({
-          geometry: polygonFromGeoJSON(coordinates.flat()),
-          id: picked.id
-        })
-
-      const csHlFillColor = new Cesium.Color(hlFillColor[0]/255., hlFillColor[1]/255., hlFillColor[2]/255., hlFillColor[3]);
-      const material = new Cesium.Material({
-        fabric: {
-          type: 'Color',
-          uniforms: {
-            color: csHlFillColor
-          }
-        }
-      });
-
-      csHlPrimitive = new Cesium.GroundPrimitive({
-        geometryInstances: [csGeom],
-        appearance: new Cesium.MaterialAppearance({
-            material: material
-          })
-      })
-      csHlPrimitive.show = true;
-
-      scene.primitives.add(csHlPrimitive);
-    
-      const positions = [];
-      for (const point of coordinates){
-        positions.push(Cesium.Cartesian3.fromDegrees(point[0], point[1], 0))
-      }
-
-      const center =
-        Cesium.BoundingSphere.fromPoints(positions
-        ).center
-
-      popup.innerHTML = picked.id
-      
-      const cntrCoord = cartesianToOlCoordinate(center);
-      overlay.setPosition(cntrCoord);
-    }
-  }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
-document.getElementById('zoom-in').onclick = () => {
-    camera.zoomIn(camera.positionCartographic.height * 0.2);
-  };
-
-document.getElementById('zoom-out').onclick = () => {
-    camera.zoomOut(camera.positionCartographic.height * 0.2);
-  };
-} 
-}
-
-
-
-/*
-function addFeatureToCesium(feature) {
-  const geom = feature.getGeometry();
-  const type = geom.getType();
-
-  const props = feature.getProperties();
-
-  if (type === 'Polygon') {
-    const coords = geom.getCoordinates()[0].flatMap(c =>
-      ol.proj.toLonLat(c)
-    );
-
-    cesiumDataSource.entities.add({
-      id: feature.getId(),
-      polygon: {
-        hierarchy: Cesium.Cartesian3.fromDegreesArray(coords),
-        material: Cesium.Color.BLUE.withAlpha(0.4)
-      },
-      properties: props
-    });
   }
 }
-  */
 
-let cesiumGeoJsonSource = null;
+const bboxDrawBtn = document.getElementById('bbox-draw-button');
+bboxDrawBtn.onclick = () => {
+    clearDrawings();
+    tileQueryOp = "BBOX-DRAW";    
+    drawBoundingBox();
+};
 
-async function createCesiumSource(id, url, style) {
-  let url_is_zone = !url.includes("tiling_id")
+const polyDrawBtn = document.getElementById('poly-draw-button');
+polyDrawBtn.onclick = () => {
+    clearDrawings();
+    tileQueryOp = "POLY-DRAW";
+    drawPolygon();
+};
 
-  const ds = await Cesium.GeoJsonDataSource.load(url, {
-    clampToGround: !url_is_zone,
-  });
 
-  const now = Cesium.JulianDate.now();
+// ---------------
+// 3D map creation
+// ---------------
+async function create3d(){
+  if (!disable3d){
+    ol3d = new olcs.OLCesium({ map, 
+      synchronize: false 
+    });
 
-  rgb = hexToRgb(style.fillColor);
-  rgba = [rgb.r, rgb.g, rgb.b, style.alpha];
-  const csFillColor = new Cesium.Color(rgba[0]/255., rgba[1]/255., rgba[2]/255., rgba[3]);
+    scene = ol3d.getCesiumScene();
+    handler = new Cesium.ScreenSpaceEventHandler(scene.canvas);
+    camera = scene.camera;
 
-  rgb = hexToRgb(style.strokeColor);
-  rgba = [rgb.r, rgb.g, rgb.b, style.alpha];
-  const csStrokeColor = new Cesium.Color(rgba[0]/255., rgba[1]/255., rgba[2]/255., rgba[3]);
+    handler.setInputAction(movement => {
+      if (!ol3d.getEnabled()) return;
 
-  ds.entities.values.forEach(entity => {
-    if (!entity.polygon) return;
-
-    // Fill
-    entity.polygon.material = csFillColor;
-    if (url_is_zone){
-      entity.polygon.outline = true;
-      entity.polygon.outlineColor = csStrokeColor;
-    }
-    else {
-      entity.polygon.classificationType =
-      Cesium.ClassificationType.TERRAIN;
-    }
-
-    // 🔥 OUTLINE AS POLYLINE (correct)
-    const hierarchy =
-      entity.polygon.hierarchy.getValue(now);
-
-    if (!hierarchy) return;
-
-    if(!url_is_zone){
-    ds.entities.add({
-      polyline: {
-        positions: hierarchy.positions,
-        width: style.strokeWidth,
-        material: csStrokeColor,
-        clampToGround: true,
+      if(csHlPrimitive){
+        scene.primitives.remove(csHlPrimitive);
+        csHlPrimitive.destroy();
       }
-    });
-    }
-    
-    const name = entity.properties.name?.getValue();
-    if (!name) return;
 
-    entity.tilename = name;
+      const picked = scene.pick(movement.position);
+      if (!picked || !picked.id) return;
 
-    const center =
-      Cesium.BoundingSphere.fromPoints(
-        hierarchy.positions
-      ).center;
-
-    // 🔤 ADD LABEL
-    entity.label = new Cesium.LabelGraphics({
-      text: name,
-      font: '14px ' + fontFamily,
-      fillColor: Cesium.Color.BLACK,
-      outlineColor: Cesium.Color.WHITE,
-      outlineWidth: 3,
-      style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-      horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
-      verticalOrigin: Cesium.VerticalOrigin.CENTER
-      //distanceDisplayCondition:
-      //  new Cesium.DistanceDisplayCondition(0, 100_000_000)
-    });
-
-    entity.position = center;
-    entity.label.show = false;
-
-  });
-
-  return ds;
+      const dsId = createDsIdFromName(picked.id);
+      if(dsId.includes("ZONE")){return};
+      const feature = layerRegistry[dsId]["ol"].getSource().getFeatures().find(f => f.get('name') === picked.id);
+      if(feature){
+        const coordinates = [];
+        for (const coord of feature.getGeometry().getCoordinates()[0]){
+          const lonlat = ol.proj.toLonLat(coord);
+          coordinates.push(lonlat);
+        }
+        const csGeom = new Cesium.GeometryInstance({
+            geometry: createCsPolygonFromGeoJSON(coordinates.flat()),
+            id: picked.id
+          })
+        const csHlFillColor = new Cesium.Color(hlFillColor[0]/255., hlFillColor[1]/255., hlFillColor[2]/255., hlFillColor[3]);
+        const csMaterial = new Cesium.Material({
+          fabric: {
+            type: 'Color',
+            uniforms: {
+              color: csHlFillColor
+            }
+          }
+        });
+        csHlPrimitive = new Cesium.GroundPrimitive({
+          geometryInstances: [csGeom],
+          appearance: new Cesium.MaterialAppearance({
+              material: csMaterial
+            })
+        })
+        csHlPrimitive.show = true;
+        scene.primitives.add(csHlPrimitive);
+        const positions = [];
+        for (const point of coordinates){
+          positions.push(Cesium.Cartesian3.fromDegrees(point[0], point[1], 0))
+        }
+        const center =
+          Cesium.BoundingSphere.fromPoints(positions
+          ).center
+        popup.innerHTML = picked.id
+        const cntrCoord = convertCsToOlCoordinate(center);
+        overlay.setPosition(cntrCoord);
+      }
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+  } 
 }
 
-function polygonFromGeoJSON(coords) {
+async function init3d(){
+  await create3d();
+}
+
+async function createCsSource(id, url, style, createDs){
+  const csPrimitives = null;
+  if(disable3d || !createDs){return csPrimitives;};
+  const geojson = await fetch(url).then(r => r.json());
+  const polyPrimitive = createCsPolygonLayer(geojson, style);
+  const outlinePrimitive = createCsOutlines(geojson, style);
+  const labelPrimitive = createCsLabels(geojson);
+  polyPrimitive.show = false;
+  outlinePrimitive.show = false;
+  labelPrimitive.show = false;
+
+  scene.primitives.add(polyPrimitive);
+  scene.primitives.add(outlinePrimitive);
+  scene.primitives.add(labelPrimitive);
+  
+  return [polyPrimitive, outlinePrimitive, labelPrimitive]
+}
+
+function createCsPolygonFromGeoJSON(coords){
   return Cesium.PolygonGeometry.fromPositions({
     positions: Cesium.Cartesian3.fromDegreesArray(coords.flat()),
     vertexFormat: Cesium.PerInstanceColorAppearance.VERTEX_FORMAT
   });
 }
 
-function createPolygonLayer(geojson, style) {
+function createCsPolygonLayer(geojson, style){
   const instances = [];
 
   for(const f of geojson.features){
@@ -354,7 +399,7 @@ function createPolygonLayer(geojson, style) {
 
     instances.push(
       new Cesium.GeometryInstance({
-        geometry: polygonFromGeoJSON(positions),
+        geometry: createCsPolygonFromGeoJSON(positions),
         id: f.properties.name
       })
     );
@@ -364,7 +409,7 @@ function createPolygonLayer(geojson, style) {
   rgba = [rgb.r, rgb.g, rgb.b, style.alpha];
   const csFillColor = new Cesium.Color(rgba[0]/255., rgba[1]/255., rgba[2]/255., rgba[3]);
 
-  const material = new Cesium.Material({
+  const csMaterial = new Cesium.Material({
     fabric: {
       type: 'Color',
       uniforms: {
@@ -376,18 +421,12 @@ function createPolygonLayer(geojson, style) {
   return new Cesium.GroundPrimitive({
     geometryInstances: instances,
     appearance: new Cesium.MaterialAppearance({
-        material: material
+        material: csMaterial
       })
-    /*
-    appearance: new Cesium.PerInstanceColorAppearance({
-      translucent: true,
-      closed: true
-    }),
-    */
   });
 }
 
-function createOutlines(geojson, style) {
+function createCsOutlines(geojson, style){
   const instances = [];
 
   for(const f of geojson.features){
@@ -411,7 +450,7 @@ function createOutlines(geojson, style) {
   rgba = [rgb.r, rgb.g, rgb.b, style.alpha];
   const csStrokeColor = new Cesium.Color(rgba[0]/255., rgba[1]/255., rgba[2]/255., rgba[3]);
 
-  const material = new Cesium.Material({
+  const csMaterial = new Cesium.Material({
     fabric: {
       type: 'Color',
       uniforms: {
@@ -423,13 +462,12 @@ function createOutlines(geojson, style) {
   return new Cesium.GroundPolylinePrimitive({
     geometryInstances: instances,
     appearance: new Cesium.PolylineMaterialAppearance({
-        material: material
+        material: csMaterial
       })
   });
 }
 
-
-function createLabels(geojson, style) {
+function createCsLabels(geojson){
   const labels = new Cesium.LabelCollection();
 
   for(const f of geojson.features){
@@ -443,57 +481,31 @@ function createLabels(geojson, style) {
       ).center;
 
     labels.add({
-    position: center,
-    text: f.properties.name,
-    font: '14px ' + fontFamily,
-    fillColor: Cesium.Color.BLACK,
-    outlineColor: Cesium.Color.WHITE,
-    outlineWidth: 3,
-    style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-    horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
-    verticalOrigin: Cesium.VerticalOrigin.CENTER
-  });
+      position: center,
+      text: f.properties.name,
+      font: '14px ' + fontFamily,
+      fillColor: Cesium.Color.BLACK,
+      outlineColor: Cesium.Color.WHITE,
+      outlineWidth: 3,
+      style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+      horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
+      verticalOrigin: Cesium.VerticalOrigin.CENTER
+    });
   };
 
   return labels
 }
 
 
-async function createCesiumSourceNew(id, url, style, createDs) {
-  const csPrimitives = null;
-  if(disable3D || !createDs){return csPrimitives;};
-  const geojson = await fetch(url).then(r => r.json());
-  const polyPrimitive = createPolygonLayer(geojson, style);
-  const outlinePrimitive = createOutlines(geojson, style);
-  const labelPrimitive = createLabels(geojson, style);
-  polyPrimitive.show = false;
-  outlinePrimitive.show = false;
-  labelPrimitive.show = false;
-
-  scene.primitives.add(polyPrimitive);
-  scene.primitives.add(outlinePrimitive);
-  scene.primitives.add(labelPrimitive);
-  
-  return [polyPrimitive, outlinePrimitive, labelPrimitive]
-}
-
-function getRandomColor() {
-  var letters = '0123456789ABCDEF';
-  var color = '#';
-  for (var i = 0; i < 6; i++) {
-    color += letters[Math.floor(Math.random() * 16)];
-  }
-  return color;
-}
-
-
+// ----------------
+// 3D map functions
+// ----------------  
 async function addZones3d(dsId){
   const layer = layerRegistry[dsId];
   const style = styleRegistry[dsId];
   const continent = dsId.split("_")[0]
   const csURL = `/createGeoms?continent=${continent}&env=cs`;
-  const createDs = layer.visible;
-  const csPrimitives = await createCesiumSourceNew(dsId, csURL, style, createDs);
+  const csPrimitives = await createCsSource(dsId, csURL, style, layer.visible);
   layer.cesium = csPrimitives;
   if(layer.cesium){
     layer.cesium[0].show = true;
@@ -523,46 +535,24 @@ async function updateZones3d(addZone){
   }
 }
 
-async function set3D(enabled) {
-  is3D = enabled;
-
-  await updateZones3d(enabled);
-
-  ol3d.setEnabled(enabled);
-  
-  Object.values(layerRegistry).forEach(layer => {
-    if (layer.ol) {
-      layer.ol.setVisible(!enabled && layer.visible);
-    }
-    if (layer.cesium) {
-      layer.cesium[0].show = enabled && layer.visible;
-      layer.cesium[1].show = enabled && layer.visible;
-    }
-  });
-
-  applyLayerOrder(".tiling-item");
-
-  // Disable OL interactions
-  map.getInteractions().forEach(i =>
-    i.setActive(!enabled)
-  );
-
-  if(enabled){
-    requestAnimationFrame(() => {
-      requestAnimationFrame(moveCesiumCredits);
-    });
-  }
-}
-
 const zoomIn3D = document.getElementById('zoom-in');
 const zoomOut3D = document.getElementById('zoom-out');
+const toggle3dIcon = document.getElementById('toggle-3d-icon');
 
-document.getElementById('toggle-3d-icon').onclick = () => {
-  if (!disable3D){
-    set3D(!is3D);
-    document.getElementById('toggle-3d-icon').innerText = is3D ? '\uD83D\uDDFA\uFE0F' : '\uD83C\uDF0D';
+zoomIn3D.onclick = () => {
+    camera.zoomIn(camera.positionCartographic.height * 0.2);
+  };
 
-    if(is3D){
+zoomOut3D.onclick = () => {
+    camera.zoomOut(camera.positionCartographic.height * 0.2);
+  };
+
+toggle3dIcon.onclick = () => {
+  if (!disable3d){
+    set3D(!is3d);
+    toggle3dIcon.innerText = is3d ? '\uD83D\uDDFA\uFE0F' : '\uD83C\uDF0D';
+
+    if(is3d){
       zoomIn3D.style.display = "block";
       zoomOut3D.style.display = "block";
     }
@@ -580,105 +570,546 @@ document.getElementById('toggle-3d-icon').onclick = () => {
   }
 }
 
-function updateStyles(){
-  Object.keys(styleRegistry).forEach(ds_id => updateStyle(ds_id));
+function applyCsLabels(csPrimitives, activate) {
+  if (!csPrimitives) return;
+  csPrimitives[2].show = activate;
+}
+
+function moveCsCredits() {
+  const sceneCredits = ol3d.getCesiumScene();
+
+  if (!sceneCredits || !sceneCredits.canvas) return;
+
+  const root = sceneCredits.canvas.parentElement;
+  if (!root) return;
+
+  const creditContainer = [...root.children].find(el =>
+    el.querySelector && el.querySelector('.cesium-credit-logoContainer')
+  );
+
+  if (!creditContainer) {
+    console.warn('Cesium credit wrapper not found');
+    return;
+  }
+
+  creditContainer.style.left = 'auto';
+  creditContainer.style.right = '10px';
+  creditContainer.style.bottom = '10px';
+  creditContainer.style.top = 'auto';
+  creditContainer.style.textAlign = 'right';
+  creditContainer.style.paddingRight = '0';
 }
 
 
-const popup = document.getElementById('popup');
-const overlay = new ol.Overlay({
-    element: popup
-});
-map.addOverlay(overlay);
+// ---------------------
+// 2D & 3D map functions
+// ---------------------
+async function set3D(enabled) {
+  is3d = enabled;
+  await updateZones3d(enabled);
+  ol3d.setEnabled(enabled);
 
-map.on('click', function (evt) {
-    if(!disable3D){
-      if (ol3d.getEnabled()) return;
+  Object.values(layerRegistry).forEach(layer => {
+    if (layer.ol) {
+      layer.ol.setVisible(!enabled && layer.visible);
     }
-    if (drawInteraction) return;
-    
-    map.forEachFeatureAtPixel(evt.pixel, function (feature) {
-        const props = feature.getProperties();
-        popup.innerHTML = props.name;
-        overlay.setPosition(evt.coordinate);
+    if (layer.cesium) {
+      layer.cesium[0].show = enabled && layer.visible;
+      layer.cesium[1].show = enabled && layer.visible;
+    }
+  });
+
+  applyLayerOrder(".tiling-item");
+
+  map.getInteractions().forEach(i =>
+    i.setActive(!enabled)
+  );
+
+  if(enabled){
+    requestAnimationFrame(() => {
+      requestAnimationFrame(moveCsCredits);
     });
-});
-
-map.getViewport().addEventListener('contextmenu', function (evt) {
-  evt.preventDefault();
-  if(drawInteraction){
-    if (tileQueryOp !== 'POLY-DRAW') return;
-    if (lastPointerCoord) {
-      drawInteraction.appendCoordinates([lastPointerCoord]);
-    }
-    drawInteraction.finishDrawing();
   }
-  else{
-      const lonlat = ol.proj.toLonLat(map.getEventCoordinate(evt));
+}
 
-      if (reprojMouse & toEqui7){
-        document.getElementById('x-coord-other').value = lonlat[0].toFixed(6);
-        document.getElementById('y-coord-other').value = lonlat[1].toFixed(6);
-        document.getElementById('other-crs').value = 4326;
-        document.getElementById('x-coord-e7').value = "";
-        document.getElementById('y-coord-e7').value = "";
+function highlightSingleTile(tile){
+  if(queryData){
+    queryData.forEach(t => {
+      const tileItem = document.getElementById(t);
+      tileItem.classList.remove("active");
+    });
+  }
+
+  updateStyles();
+
+  if(csHlPrimitive){
+    scene.primitives.remove(csHlPrimitive);
+    csHlPrimitive.destroy();
+  }
+
+  const csGeom = highlightTile(tile);
+
+  const csHlFillColor = new Cesium.Color(hlFillColor[0]/255., hlFillColor[1]/255., hlFillColor[2]/255., hlFillColor[3]);
+    const csMaterial = new Cesium.Material({
+      fabric: {
+        type: 'Color',
+        uniforms: {
+          color: csHlFillColor
+        }
       }
+    });
 
-      navigator.clipboard.writeText(lonlat);
+  csHlPrimitive = new Cesium.GroundPrimitive({
+      geometryInstances: [csGeom],
+      appearance: new Cesium.MaterialAppearance({
+          material: csMaterial
+        })
+    })
+    csHlPrimitive.show = true;
 
-      Swal.fire({
-        position: "top-end",
-        icon: "success",
-        title: '<span style="font-size: 18px;font-weight: bold;">Copied coordinate.</span>',
-        showConfirmButton: false,
-        timer: 1500,
-        width: "400px"
-      });
+  scene.primitives.add(csHlPrimitive);
+}
+
+function highlightTile(tile){
+  const tileItem = document.getElementById(tile);
+  tileItem.classList.toggle("active");
+
+  const dsId = createDsIdFromName(tile);
+  const feature = layerRegistry[dsId]["ol"].getSource().getFeatures().find(f => f.get('name') === tile);
+  if(feature){
+    const selectedStyle = createLabelStyle(feature, dsId)
+    selectedStyle.getFill().setColor(hlFillColor);
+    feature.setStyle(selectedStyle);
+
+    const coordinates = [];
+    for (const coord of feature.getGeometry().getCoordinates()[0]){
+      const lonlat = ol.proj.toLonLat(coord);
+      coordinates.push(lonlat);
+    }
+    
+    const csGeom = new Cesium.GeometryInstance({
+        geometry: createCsPolygonFromGeoJSON(coordinates.flat()),
+        id: tile
+      })
+
+    return csGeom;
   }
-});
+}
 
-function ds_id_from_name(name){
-  let ds_id = null; 
-  if(name.includes("_")){
-    ds_id = name.substring(0, 2) + "_" + name.substring(name.length - 2, name.length)
+
+document.getElementById('query-tiles').onclick = async () => {
+  const sampling = document.getElementById("sampling-input").value;
+  if (sampling){
+    if(sampling != stdSampling){
+      await fetch(
+      `/updateSampling?sampling=${sampling}`
+    )
+    stdSampling = sampling;
+    }
+  } 
+
+  updateStyles();
+  
+  if(!tileQueryOp){
+      const bboxWrapper = document.getElementById('bbox-container');
+      const bboxActive = bboxWrapper.style.display == "grid";
+      if(bboxActive){
+        tileQueryOp = "BBOX";
+      }
+      else{
+        return
+      }
+  } 
+  map.removeInteraction(drawInteraction);
+  drawInteraction = null;
+
+  const tiling_id = document.getElementById("tiles-tiling").value;
+  let res;
+  if(tileQueryOp == "BBOX"){
+    const east = document.getElementById('bbox_e').value
+    const south = document.getElementById('bbox_s').value
+    const west = document.getElementById('bbox_w').value
+    const north = document.getElementById('bbox_n').value
+    res = await fetch(
+      `/queryTilesFromBbox?east=${east}&south=${south}&west=${west}&north=${north}&tiling_id=${tiling_id}`
+    );
   }
   else{
-    ds_id = name + "_ZONE";
+    const feature = drawSource.getFeatures()[0];
+    const wkt = new ol.format.WKT();
+    const wktGeom = wkt.writeGeometry(feature.getGeometry());
+    res = await fetch(
+      `/queryTilesFromWkt?wkt=${wktGeom}&tiling_id=${tiling_id}`
+    );
   }
+  
+  const data = await res.json();
+  const list = document.getElementById('tile-list');
+  list.innerHTML = '';
 
-  return ds_id
+  if(csHlPrimitive){
+    scene.primitives.remove(csHlPrimitive);
+    csHlPrimitive.destroy();
+  }
+  const csGeoms = [];
+  data.forEach(tile => {
+    const li = document.createElement('li');
+    li.className = 'tile-item';
+    li.id = tile;
+    li.innerHTML = `
+    <span onclick="highlightSingleTile('${tile}');">${tile}</span>
+    <span onclick="copyTraffo('${tile}');">\uD83C\uDF10</span>
+    <span onclick="copyPython('${tile}');">\uD83D\uDC0D</span>`;
+    list.appendChild(li);
+
+    const csGeom = highlightTile(tile);
+    csGeoms.push(csGeom);
+  });
+
+  const csHlFillColor = new Cesium.Color(hlFillColor[0]/255., hlFillColor[1]/255., hlFillColor[2]/255., hlFillColor[3]);
+    const csMaterial = new Cesium.Material({
+      fabric: {
+        type: 'Color',
+        uniforms: {
+          color: csHlFillColor
+        }
+      }
+  });
+  csHlPrimitive = new Cesium.GroundPrimitive({
+    geometryInstances: csGeoms,
+    appearance: new Cesium.MaterialAppearance({
+      material: csMaterial
+    })
+  })
+  csHlPrimitive.show = true;
+  scene.primitives.add(csHlPrimitive);
+  queryData = data;
+  clearDrawings();
+  tileQueryOp = null;
+};
+
+
+async function registerDataset(id, url){
+  const olURL = url + "&env=ol"
+  if (!(id in styleRegistry)){
+    styleRegistry[id] = {...defaultStyle};
+  }
+  const style = styleRegistry[id];
+  
+  const olLayer = createOlVectorLayer(olURL, id);
+  map.addLayer(olLayer);
+
+  const olSource = olLayer.getSource();
+  await new Promise(resolve => {
+    if (olSource.getState() === 'ready'){
+      resolve();
+    } else {
+      olSource.once('featuresloadend', resolve);
+    }
+  });
+
+  const csURL = url + "&env=cs"
+  const isZone = !url.includes("tiling_id");
+  const csPrimitives = await createCsSource(id, csURL, style, !isZone);
+
+  layerRegistry[id] = {
+    ol: olLayer,
+    cesium: csPrimitives,
+    visible: false
+  };
 }
 
-function selectStyle(feature) {
-  if(!tileQueryOp){
-    ds_id = ds_id_from_name(feature.getProperties().name)
-    const selectedStyle = createLabelStyle(feature, ds_id)
-    if(ds_id.includes("ZONE")){
-      return selectedStyle;
+async function setLayerVisible(dsId, visible){
+  const layer = layerRegistry[dsId];
+  if (!layer) return;
+  layer.visible = visible;
+
+  const isZone = dsId.includes("ZONE");
+  if(is3d && isZone && visible){
+    await addZones3d(dsId);
+  }
+  else if(is3d && isZone && !visible){
+    delZones3d(dsId);
+  }
+  
+  if (layer.ol) {
+    if(!disable3d){
+      layer.ol.setVisible(!ol3d.getEnabled() && visible);
     }else{
-      selectedStyle.getFill().setColor(hlFillColor);
-    return selectedStyle;
+      layer.ol.setVisible(visible);
     }
   }
+
+  if (layer.cesium) {
+    layer.cesium[0].show = ol3d.getEnabled() && visible;
+    layer.cesium[1].show = ol3d.getEnabled() && visible;
+  }
 }
 
-const selectClick = new ol.interaction.Select({
-  condition: ol.events.click,
-  style: selectStyle
-});
-map.addInteraction(selectClick);
+async function loadTiling(){
+  const continent = document.getElementById('continent-selection').value;
+  const tilingId = document.getElementById('tiling-id').value;
+  const tileSize = document.getElementById('tilesize').value;
+  if (!continent) return;
+
+  const dsId = continent + "_" + tilingId
+  if (!(dsId in layerRegistry)){
+    await registerDataset(dsId, `/createGeoms?continent=${continent}&tiling_id=${tilingId}&tile_size=${tileSize}`)
+    renderLayerSwitcher();
+    updateStyles();
+
+    const tilingElem = document.createElement("option");
+    tilingElem.value = tilingId;
+    tilingElem.innerText = tilingId;
+    const selectContTiling = document.getElementById(`select-tiling-${continent.toLowerCase()}`);
+    selectContTiling.appendChild(tilingElem);
+  }
+}
+
+document.getElementById('load-tiling').onclick = async () => {
+  startLoader();
+  await loadTiling();
+  endLoader();
+};
+
+async function init_zones(){
+  for (const continent of continents){
+    const dsId = continent + "_ZONE"
+    let zoneStyle = {};
+    zoneStyle = {...defaultStyle};
+    zoneStyle.fillColor = zoneColours[continent];
+    styleRegistry[dsId] = zoneStyle;
+    await registerDataset(dsId, `/createGeoms?continent=${continent}`);
+  }
+  renderLayerSwitcher();
+}
+
+async function init_standard_grids(){
+  for (const continent of continents){
+    for (const tilingId of initTilingIds){  
+        const dsId = continent + "_" + tilingId
+        await registerDataset(dsId, `/createGeoms?continent=${continent}&tiling_id=${tilingId}`);
+    }
+  }
+  renderLayerSwitcher();
+  updateStyles();
+}
+
+async function initLayers(){
+  startLoader();
+  await init_zones();
+  await init_standard_grids();
+  endLoader();
+}
+
+function convertCsToOlCoordinate(cartesian) {
+  const csCarto = Cesium.Cartographic.fromCartesian(cartesian);
+  return ol.proj.fromLonLat([
+    Cesium.Math.toDegrees(csCarto.longitude),
+    Cesium.Math.toDegrees(csCarto.latitude)
+  ]);
+}
+
+function labelTiles(checked){
+  Object.keys(layerRegistry).forEach(dsId => {
+    styleRegistry[dsId].show_labels=checked;
+    updateStyle(dsId)
+  })
+
+  Object.values(layerRegistry).forEach(layer => {
+    if (layer.visible){
+      applyCsLabels(layer["cesium"], checked)
+    }
+    });
+}
+
+function showZones(checked){
+  continents.forEach(continent => setLayerVisible(continent + "_ZONE", checked));
+}
+
+async function doAddDelPerTiling(continent, tilingId, remove){
+    const dsId = continent + "_" + tilingId;
+    const dsExists = Object.keys(layerRegistry).includes(dsId)
+    if (!remove && !dsExists){
+      url = `/createGeoms?continent=${continent}&tiling_id=${tilingId}`
+      await registerDataset(dsId, url)
+    }
+    else if (remove && dsExists) {
+      map.removeLayer(layerRegistry[dsId]["ol"]);
+      if(!disable3d){
+        scene.primitives.remove(layerRegistry[dsId]["cesium"][0]);
+        scene.primitives.remove(layerRegistry[dsId]["cesium"][1]);
+        scene.primitives.remove(layerRegistry[dsId]["cesium"][2]);
+      }
+      delete layerRegistry[dsId];
+      delete styleRegistry[dsId];
+
+      
+      if(!tilingIds.includes(tilingId)){
+      const selectContTiling = document.getElementById(`select-tiling-${continent.toLowerCase()}`);
+      let childToRemove = null;
+      let children = selectContTiling.children;
+      for (var i = 0; i < children.length; i++) {
+        if(children[i].value == tilingId){
+          childToRemove = children[i];
+          break
+        }
+      }
+      selectContTiling.removeChild(childToRemove);
+     }
+    }
+}
+
+async function doAddDel(continent, tilingId, remove){
+  let tilingIdsAddDel = null;
+  if(tilingId == "all"){
+    tilingIdsAddDel = tilingIds;
+  }
+  else{
+    tilingIdsAddDel = [tilingId];
+  }
+  
+  for(const tilingIdAddDel of tilingIdsAddDel){
+    await doAddDelPerTiling(continent, tilingIdAddDel, remove);
+  }
+
+  renderLayerSwitcher();
+  updateStyles();
+}
+
+function applyLayerOrder(itemName) {
+  const dsIds = [...document.querySelectorAll(itemName)]
+    .map(li => li.dataset.layerId);
+
+  const layers = map.getLayers();
+  dsIds.forEach((dsId, index) => {
+    const olLayer = layerRegistry[dsId].ol;
+    if (!olLayer) return;
+
+    layers.remove(olLayer);
+    layers.insertAt(index + 1, olLayer); // +1 if base layer at 0
+  });
+
+  dsIds.forEach(dsId => {
+    const csPrimitives = layerRegistry[dsId].cesium;
+    if (!csPrimitives) return;
+
+    scene.primitives.raiseToTop(csPrimitives[0]);
+    scene.primitives.raiseToTop(csPrimitives[1]);
+    scene.primitives.raiseToTop(csPrimitives[2]);
+  });
+}
+
+// update layer styles
+function updateFillColor(dsId, fillColor){
+  styleRegistry[dsId].fillColor = fillColor;
+  console.log(styleRegistry);
+  updateStyle(dsId);
+  console.log(styleRegistry);
+}
+
+function updateStrokeWidth(dsId, strokeWidth){
+  styleRegistry[dsId].strokeWidth = strokeWidth;
+  updateStyle(dsId);
+}
+
+function updateStrokeColor(dsId, strokeColor){
+  styleRegistry[dsId].strokeColor = strokeColor;
+  updateStyle(dsId);
+}
+
+function updateStyle(dsId){
+  const fillColorInput = document.getElementById(`FillColor_${dsId}`);
+  if(fillColorInput){
+    fillColorInput.value = styleRegistry[dsId]["fillColor"];
+    const strokeColorInput = document.getElementById(`StrokeColor_${dsId}`);
+    strokeColorInput.value = styleRegistry[dsId]["strokeColor"];
+  }
+
+  if(dsId.includes("ZONE")){
+    return
+  }
+  const style = styleRegistry[dsId];
+
+  layerRegistry[dsId]["ol"].setStyle(feature => createLabelStyle(feature, dsId));
+  if(queryData){
+    queryData.forEach(tile => {
+      const feature = layerRegistry[dsId]["ol"].getSource().getFeatures().find(f => f.get('name') === tile);
+      if(feature){
+        const selectedStyle = createLabelStyle(feature, dsId)
+        feature.setStyle(selectedStyle);
+      }
+    });
+  }
+
+  if(disable3d){return};
+
+  const csPrimitives = layerRegistry[dsId]["cesium"]
+  if(csPrimitives == null){return};
+
+  rgb = hexToRgb(style.fillColor)
+  rgba = [rgb.r, rgb.g, rgb.b, style.alpha]
+  const csFillColor = new Cesium.Color(rgba[0]/255., rgba[1]/255., rgba[2]/255., rgba[3])
+  rgb = hexToRgb(style.strokeColor)
+  rgba = [rgb.r, rgb.g, rgb.b, style.alpha]
+  const csStrokeColor = new Cesium.Color(rgba[0]/255., rgba[1]/255., rgba[2]/255., rgba[3])
+
+  const csFillMaterial = new Cesium.Material({
+    fabric: {
+      type: 'Color',
+      uniforms: {
+        color: csFillColor
+      }
+    }
+  });
+  const csStrokeMaterial = new Cesium.Material({
+    fabric: {
+      type: 'Color',
+      uniforms: {
+        color: csStrokeColor
+      }
+    }
+  });
+  csPrimitives[0].appearance.material = csFillMaterial;
+  csPrimitives[1].appearance.material = csStrokeMaterial;
+}
+
+function updateStyles(){
+  Object.keys(styleRegistry).forEach(dsId => updateStyle(dsId));
+}
 
 
-map.on('pointermove', e => {
-    lastPointerCoord = e.coordinate;
-    const coord = ol.proj.toLonLat(e.coordinate);
-    document.getElementById('pointer-coords').innerHTML =
-        `<b>Lon:</b> ${coord[0].toFixed(4)}, <b>Lat:</b> ${coord[1].toFixed(4)}`;
-});
+// ----------------
+// helper functions
+// ----------------
+function createDsIdFromName(name){
+  let dsId = null; 
+  if(name.includes("_")){
+    dsId = name.substring(0, 2) + "_" + name.substring(name.length - 2, name.length)
+  }
+  else{
+    dsId = name + "_ZONE";
+  }
+
+  return dsId
+}
+
+function hexToRgb(hex) {
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
 
 
+// ------------
+// UI functions
+// ------------
+// update stroke settings and style
 const strokeSlider = document.getElementById('stroke-width-slider');
-const strokeEmoji =document.getElementById('stroke-emoji');
+const strokeEmoji = document.getElementById('stroke-emoji');
 
 function updateStrokeEmoji() {
   const min = strokeSlider.min;
@@ -686,11 +1117,17 @@ function updateStrokeEmoji() {
   const percent = (strokeSlider.value - min) / (max - min);
   strokeEmoji.style.left = percent * 100 + '%';
 }
-
-strokeSlider.addEventListener('input', updateStrokeEmoji);
 updateStrokeEmoji();
 
+strokeSlider.oninput = (e) => {
+    updateStrokeEmoji();
+    Object.keys(styleRegistry).forEach(dsId => {
+      styleRegistry[dsId].strokeWidth = e.target.value;
+      updateStyle(dsId);
+    });
+};
 
+// update opacity settings and style
 const opacSlider = document.getElementById('opac-slider');
 const opacEmoji =document.getElementById('opac-emoji');
 
@@ -700,76 +1137,17 @@ function updateOpacEmoji() {
   const percent = (opacSlider.value - min) / (max - min);
   opacEmoji.style.left = percent * 100 + '%';
 }
-
-opacSlider.addEventListener('input', updateOpacEmoji);
 updateOpacEmoji();
 
-function highlightSingleTile(tile){
-    if(queryData){
-      queryData.forEach(t => {
-        const tileItem = document.getElementById(t);
-        tileItem.classList.remove("active");
-      });
-    }
+opacSlider.oninput = (e) => {
+    updateOpacEmoji();
+    Object.keys(styleRegistry).forEach(dsId => {
+      styleRegistry[dsId].alpha = e.target.value/100.;
+      updateStyle(dsId);
+    });
+};
 
-    Object.keys(styleRegistry).forEach(ds_id => updateStyle(ds_id));
-
-    if(csHlPrimitive){
-      scene.primitives.remove(csHlPrimitive);
-      csHlPrimitive.destroy();
-    }
-
-    const csGeom = highlightTile(tile);
-
-    const csHlFillColor = new Cesium.Color(hlFillColor[0]/255., hlFillColor[1]/255., hlFillColor[2]/255., hlFillColor[3]);
-      const material = new Cesium.Material({
-        fabric: {
-          type: 'Color',
-          uniforms: {
-            color: csHlFillColor
-          }
-        }
-      });
-
-    csHlPrimitive = new Cesium.GroundPrimitive({
-        geometryInstances: [csGeom],
-        appearance: new Cesium.MaterialAppearance({
-            material: material
-          })
-      })
-      csHlPrimitive.show = true;
-
-    scene.primitives.add(csHlPrimitive);
-}
-
-function highlightTile(tile){
-    const tileItem = document.getElementById(tile);
-    tileItem.classList.toggle("active");
-
-    ds_id = ds_id_from_name(tile);
-    const feature = layerRegistry[ds_id]["ol"].getSource().getFeatures().find(f => f.get('name') === tile);
-    if(feature){
-      const selectedStyle = createLabelStyle(feature, ds_id)
-      selectedStyle.getFill().setColor(hlFillColor);
-      feature.setStyle(selectedStyle);
-
-      const coordinates = [];
-      for (const coord of feature.getGeometry().getCoordinates()[0]){
-        const lonlat = ol.proj.toLonLat(coord);
-        coordinates.push(lonlat);
-      }
-      
-      const csGeom = new Cesium.GeometryInstance({
-          geometry: polygonFromGeoJSON(coordinates.flat()),
-          id: tile
-        })
-
-      return csGeom;
-    }
-
-    
-}
-
+// copy all tiles in query result as tilenames to clipboard
 document.getElementById('copy-tilenames-icon').onclick = () => {
   const tileList = document.getElementById('tile-list');
   const tilenames = [];
@@ -788,6 +1166,7 @@ document.getElementById('copy-tilenames-icon').onclick = () => {
   });
 }
 
+// copy all tiles in query result as a dictionary of geotransformation parameters to clipboard
 document.getElementById('copy-traffos-icon').onclick = async () => {
   const tileList = document.getElementById('tile-list');
   const traffos = {};
@@ -810,37 +1189,6 @@ document.getElementById('copy-traffos-icon').onclick = async () => {
   });
 }
 
-document.getElementById('copy-e7tiles-icon').onclick = async () => {
-  const tileList = document.getElementById('tile-list');
-  const e7tiles = {};
-  for (const tileItem of tileList.childNodes){
-      const tilename = tileItem.id;
-      const res = await fetch(
-        `/getTileDef?tilename=${tilename}`
-      );
-      const data = await res.json();
-      e7tiles[tilename] = data;
-  }
-  const code_template = ` 
-import json
-from equi7grid._core import Equi7Tile
-
-json_dict = json.loads('''${JSON.stringify(e7tiles, null, '\t')}''')
-e7tiles = {}
-for tilename, tile_json in json_dict.items():
-    e7tiles[tilename] = Equi7Tile(**tile_json)
-    `
-  navigator.clipboard.writeText(code_template);
-  Swal.fire({
-    position: "top-end",
-    icon: "success",
-    title: '<span style="font-size: 18px;font-weight: bold;">Copied Equi7Tile generation code.</span>',
-    showConfirmButton: false,
-    timer: 1500,
-    width: "400px"
-  });
-}
-
 async function copyTraffo(tile){
   const res = await fetch(
         `/getGeoTraffo?tilename=${tile}`
@@ -851,6 +1199,38 @@ async function copyTraffo(tile){
     position: "top-end",
     icon: "success",
     title: '<span style="font-size: 18px;font-weight: bold;">Copied geotransformation parameters: \n' + data + '</span>',
+    showConfirmButton: false,
+    timer: 1500,
+    width: "400px"
+  });
+}
+
+// copy all tiles in query result as Python code generating Equi7Tile objects to clipboard
+document.getElementById('copy-e7tiles-icon').onclick = async () => {
+  const tileList = document.getElementById('tile-list');
+  const e7Tiles = {};
+  for (const tileItem of tileList.childNodes){
+      const tilename = tileItem.id;
+      const res = await fetch(
+        `/getTileDef?tilename=${tilename}`
+      );
+      const data = await res.json();
+      e7Tiles[tilename] = data;
+  }
+  const code_template = ` 
+import json
+from equi7grid._core import Equi7Tile
+
+json_dict = json.loads('''${JSON.stringify(e7Tiles, null, '\t')}''')
+e7tiles = {}
+for tilename, tile_json in json_dict.items():
+    e7tiles[tilename] = Equi7Tile(**tile_json)
+    `
+  navigator.clipboard.writeText(code_template);
+  Swal.fire({
+    position: "top-end",
+    icon: "success",
+    title: '<span style="font-size: 18px;font-weight: bold;">Copied Equi7Tile generation code.</span>',
     showConfirmButton: false,
     timer: 1500,
     width: "400px"
@@ -880,319 +1260,45 @@ e7tile = Equi7Tile(**json_dict)
   });
 }
 
-document.getElementById('query-tiles').onclick = async () => {
-    const sampling = document.getElementById("sampling-input").value;
-    if (sampling){
-      if(sampling != stdSampling){
-        await fetch(
-        `/updateSampling?sampling=${sampling}`
-      )
-      stdSampling = sampling;
-      }
-    } 
-    
-    console.log(stdSampling);
-
-    updateStyles();
-    if(!tileQueryOp){
-        const bboxWrapper = document.getElementById('bbox-container');
-        const bboxActive = bboxWrapper.style.display == "grid";
-        if(bboxActive){
-          tileQueryOp = "BBOX";
-        }
-        else{
-          return
-        }
-    } 
-    map.removeInteraction(drawInteraction);
-    drawInteraction = null;
-
-    const tiling_id = document.getElementById("tiles-tiling").value;
-    let res;
-    if(tileQueryOp == "BBOX"){
-      const east = document.getElementById('bbox_e').value
-      const south = document.getElementById('bbox_s').value
-      const west = document.getElementById('bbox_w').value
-      const north = document.getElementById('bbox_n').value
-      res = await fetch(
-        `/queryTilesFromBbox?east=${east}&south=${south}&west=${west}&north=${north}&tiling_id=${tiling_id}`
-    );
-    }
-    else{
-      const feature = drawSource.getFeatures()[0];
-      const wkt = new ol.format.WKT();
-      const wktGeom = wkt.writeGeometry(feature.getGeometry());
-      res = await fetch(
-        `/queryTilesFromWkt?wkt=${wktGeom}&tiling_id=${tiling_id}`
-    );
-    }
-    
-    const data = await res.json();
-
-    const list = document.getElementById('tile-list');
-    list.innerHTML = '';
-
-    if(csHlPrimitive){
-      scene.primitives.remove(csHlPrimitive);
-      csHlPrimitive.destroy();
-    }
-    const csGeoms = [];
-    data.forEach(tile => {
-      const li = document.createElement('li');
-      li.className = 'tile-item';
-      li.id = tile;
-      li.innerHTML = `
-      <span onclick="highlightSingleTile('${tile}');">${tile}</span>
-      <span onclick="copyTraffo('${tile}');">\uD83C\uDF10</span>
-      <span onclick="copyPython('${tile}');">\uD83D\uDC0D</span>`;
-      list.appendChild(li);
-
-      const csGeom = highlightTile(tile);
-      csGeoms.push(csGeom);
-    });
-
-    const csHlFillColor = new Cesium.Color(hlFillColor[0]/255., hlFillColor[1]/255., hlFillColor[2]/255., hlFillColor[3]);
-      const material = new Cesium.Material({
-        fabric: {
-          type: 'Color',
-          uniforms: {
-            color: csHlFillColor
-          }
-        }
-      });
-
-    csHlPrimitive = new Cesium.GroundPrimitive({
-        geometryInstances: csGeoms,
-        appearance: new Cesium.MaterialAppearance({
-            material: material
-          })
-      })
-      csHlPrimitive.show = true;
-
-    scene.primitives.add(csHlPrimitive);
-
-    queryData = data;
-
-    clearDrawings();
-    tileQueryOp = null;
-    };
-
-function createLabelStyle(feature, dsId) {
-  const style = styleRegistry[dsId];
-
-  rgb = hexToRgb(style.fillColor)
-  rgba = [rgb.r, rgb.g, rgb.b, style.alpha]
-  return new ol.style.Style({
-  fill: new ol.style.Fill({
-    color: rgba
-  }),
-  stroke: new ol.style.Stroke({
-    color: style.strokeColor,
-    width: style.strokeWidth
-  }),
-  text: style.show_labels ? new ol.style.Text({
-      text: feature.get('name'),
-      font: '12px ' + fontFamily,
-      fill: new ol.style.Fill({ color: '#000' }),
-      stroke: new ol.style.Stroke({
-        color: '#fff',
-        width: 3
-      }),
-      overflow: true
-    }) : null
-});
-}
-
-
-function applyCesiumLabels(csPrimitives, activate) {
-  if (!csPrimitives) return;
-  csPrimitives[2].show = activate;
-}
-
-
-function createOlVectorLayer(url, dsId) {
-  const source = new ol.source.Vector({
-      url,
-      format: new ol.format.GeoJSON()
-    })
-
-  const vl = new ol.layer.Vector({
-    source: source,
-    visible: false
-  });
-
-  vl.setStyle(feature => createLabelStyle(feature, dsId));
-
-  source.loadFeatures(
-    map.getView().calculateExtent(map.getSize()),
-    map.getView().getResolution(),
-    map.getView().getProjection()
-  );
-
-  return vl
-}
-
-async function registerDataset(id, url) {
-  const olURL = url + "&env=ol"
-  if (!(id in styleRegistry)){
-    styleRegistry[id] = {...defaultStyle};
-  }
-  const style = styleRegistry[id];
-  
-  // 2D
-  const olLayer = createOlVectorLayer(olURL, id);
-  map.addLayer(olLayer);
-
-  const olSource = olLayer.getSource();
-  await new Promise(resolve => {
-    if (olSource.getState() === 'ready') {
-      resolve();
-    } else {
-      olSource.once('featuresloadend', resolve);
-    }
-  });
-
-  // 3D
-  const csURL = url + "&env=cs"
-  const isZone = !url.includes("tiling_id");
-  const csPrimitives = await createCesiumSourceNew(id, csURL, style, !isZone);
-
-  layerRegistry[id] = {
-    ol: olLayer,
-    cesium: csPrimitives,
-    visible: false
-  };
-}
-
-async function setLayerVisible(id, visible) {
-  const layer = layerRegistry[id];
-  if (!layer) return;
-  layer.visible = visible;
-
-  const isZone = id.includes("ZONE");
-  if(is3D && isZone && visible){
-    await addZones3d(id);
-  }
-  else if(is3D && isZone && !visible){
-    delZones3d(id);
-  }
-  
-  
-
-  // 2D
-  if (layer.ol) {
-    if(!disable3D){
-      layer.ol.setVisible(!ol3d.getEnabled() && visible);
-    }else{
-      layer.ol.setVisible(visible);
-    }
-  }
-
-  // 3D
-  if (layer.cesium) {
-    layer.cesium[0].show = ol3d.getEnabled() && visible;
-    layer.cesium[1].show = ol3d.getEnabled() && visible;
-  }
-}
-
-async function init_zones(){
-  for (const continent of continents){
-    const ds_id = continent + "_ZONE"
-    let zoneStyle = {};
-    zoneStyle = {...defaultStyle};
-    zoneStyle.fillColor = zoneColours[continent];
-    styleRegistry[ds_id] = zoneStyle;
-    await registerDataset(ds_id, `/createGeoms?continent=${continent}`);
-  }
-  renderLayerSwitcher();
-}
-
+// setup dataset loader animation
 function startLoader(){
-  const csToggle = document.getElementById("toggle-3d-icon");
-  csToggle.innerHTML = `<span class="loader" id="loader"></span>`;
-  csToggle.disabled = true;
+  toggle3dIcon.innerHTML = `<span class="loader" id="loader"></span>`;
+  toggle3dIcon.disabled = true;
 }
 
 function endLoader(){
-  const csToggle = document.getElementById("toggle-3d-icon");
-  csToggle.innerHTML = '\uD83C\uDF0D';
-  csToggle.disabled = false;
+  toggle3dIcon.innerHTML = '\uD83C\uDF0D';
+  toggle3dIcon.disabled = false;
 }
 
-async function init_standard_grids(){
-  for (const continent of continents){
-    for (const tiling_level of initTilingIds){  
-        const ds_id = continent + "_" + tiling_level
-        await registerDataset(ds_id, `/createGeoms?continent=${continent}&tiling_id=${tiling_level}`);
-    }
-  }
-  renderLayerSwitcher();
-  updateStyles();
-}
-
-async function initLayers(){
-  startLoader();
-  await init_zones();
-  await init_standard_grids();
-  endLoader();
-}
-
-async function loadTiling() {
-  
-  const continent = document.getElementById('continent-selection').value;
-  const tiling_id = document.getElementById('tiling-id').value;
-  const tile_size = document.getElementById('tilesize').value;
-  if (!continent) return;
-
-  ds_id = continent + "_" + tiling_id
-  if (!(ds_id in layerRegistry)){
-    await registerDataset(ds_id, `/createGeoms?continent=${continent}&tiling_id=${tiling_id}&tile_size=${tile_size}`)
-    renderLayerSwitcher();
-    updateStyles();
-
-    const tilingElem = document.createElement("option");
-    tilingElem.value = tiling_id;
-    tilingElem.innerText = tiling_id;
-    const selectContTiling = document.getElementById(`select-tiling-${continent.toLowerCase()}`);
-    selectContTiling.appendChild(tilingElem);
-  }
-}
-
-
-document.getElementById('load-tiling').onclick = async () =>  {
-  startLoader();
-  await loadTiling();
-  endLoader();
-};
-
-
+// setup coordinate reprojection
 document.getElementById('reproject-coord').onclick = async () => {
   if(toEqui7){
     const x = document.getElementById('x-coord-other').value;
     const y = document.getElementById('y-coord-other').value;
-    const other_epsg = document.getElementById('other-crs').value;
+    const otherEpsg = document.getElementById('other-crs').value;
 
-    if (!x || !y || !other_epsg) return;
+    if (!x || !y || !otherEpsg) return;
 
     const res = await fetch(
-        `/reprojectToEqui7?x=${x}&y=${y}&epsg=${other_epsg}`
+        `/reprojectToEqui7?x=${x}&y=${y}&epsg=${otherEpsg}`
     );
     const data = await res.json();
 
     document.getElementById('x-coord-e7').value = data.x.toFixed(3);
     document.getElementById('y-coord-e7').value = data.y.toFixed(3);
-    document.getElementById('proj-continent-selection').value = epsg_map[data.epsg];
+    document.getElementById('proj-continent-selection').value = epsgMap[data.epsg];
   }
   else{
     const x = document.getElementById('x-coord-e7').value;
     const y = document.getElementById('y-coord-e7').value;
     const continent = document.getElementById('proj-continent-selection').value;
-    const other_epsg = document.getElementById('other-crs').value;
+    const otherEpsg = document.getElementById('other-crs').value;
 
     if (!x || !y || !continent) return;
 
     const res = await fetch(
-        `/reprojectFromEqui7?x=${x}&y=${y}&continent=${continent}&epsg=${other_epsg}`
+        `/reprojectFromEqui7?x=${x}&y=${y}&continent=${continent}&epsg=${otherEpsg}`
     );
     const data = await res.json();
 
@@ -1201,8 +1307,39 @@ document.getElementById('reproject-coord').onclick = async () => {
   }
 };
 
-const toggle3dIcon = document.getElementById('toggle-3d-icon');
+const projSwitchIcon = document.getElementById('proj-switch-icon');
+projSwitchIcon.onclick = () => {
+  if(toEqui7){
+    projSwitchIcon.innerText = "\u2B06\uFE0F";
+    toEqui7 = false;
+    document.getElementById('x-coord-other').value = "";
+    document.getElementById('y-coord-other').value = "";
+    if(!reprojMouse){
+      document.getElementById('other-crs').value = "";
+    }
+    document.getElementById('proj-continent-selection').disabled = false;
+  }
+  else{
+    projSwitchIcon.innerText = "\u2B07\uFE0F";
+    toEqui7 = true;
+    document.getElementById('x-coord-e7').value = "";
+    document.getElementById('y-coord-e7').value = "";
+    document.getElementById('proj-continent-selection').disabled = true;
+  }
+}
 
+function setReprojMouse(flag){
+  reprojMouse = flag;
+  const otherCRS = document.getElementById('other-crs');
+  if (reprojMouse){
+    otherCRS.disabled = true
+  }
+  else{
+    otherCRS.disabled = false
+  }
+}
+
+// app panel management
 const appPanel = document.getElementById('settings-app');
 const appIcon = document.getElementById('settings-app-icon');
 const minimizeBtn = document.getElementById('minimize-settings-app');
@@ -1222,7 +1359,6 @@ const tileMinimizeBtn = document.getElementById('minimize-tile-app');
 const tilingAppPanel = document.getElementById('tiling-app');
 const tilingAppIcon = document.getElementById('tiling-app-icon');
 const tilingMinimizeBtn = document.getElementById('minimize-tiling-app');
-
 
 const app_panels = {"app": appPanel, "proj": projAppPanel, "layer": layerAppPanel, "tile": tileAppPanel, "tiling": tilingAppPanel}
 const app_icons = {"app": appIcon, "proj": projAppIcon, "layer": layerAppIcon, "tile": tileAppIcon, "3d": toggle3dIcon, "tiling": tilingAppIcon}
@@ -1252,77 +1388,55 @@ function open_app(name){
 
 minimizeBtn.onclick = () => {
     minimize_app()
-    // Ensure map renders correctly
     setTimeout(() => map.updateSize(), 50);
 };
 
 appIcon.onclick = () => {
     open_app("app")
-
-    // Ensure map renders correctly
     setTimeout(() => map.updateSize(), 50);
 };
 
-
 projMinimizeBtn.onclick = () => {
     minimize_app()
-
-    // Ensure map renders correctly
     setTimeout(() => map.updateSize(), 50);
 };
 
 projAppIcon.onclick = () => {
     open_app("proj")
-
-    // Ensure map renders correctly
     setTimeout(() => map.updateSize(), 50);
 };
 
-
 layerMinimizeBtn.onclick = () => {
     minimize_app()
-
-    // Ensure map renders correctly
     setTimeout(() => map.updateSize(), 50);
 };
 
 layerAppIcon.onclick = () => {
     open_app("layer")
-
-    // Ensure map renders correctly
     setTimeout(() => map.updateSize(), 50);
 };
 
-
 tileMinimizeBtn.onclick = () => {
     minimize_app()
-
-    // Ensure map renders correctly
     setTimeout(() => map.updateSize(), 50);
 };
 
 tileAppIcon.onclick = () => {
     open_app("tile")
-
-    // Ensure map renders correctly
     setTimeout(() => map.updateSize(), 50);
 };
 
 tilingMinimizeBtn.onclick = () => {
     minimize_app()
-
-    // Ensure map renders correctly
     setTimeout(() => map.updateSize(), 50);
 };
 
 tilingAppIcon.onclick = () => {
     open_app("tiling")
-
-    // Ensure map renders correctly
     setTimeout(() => map.updateSize(), 50);
 };
 
-
+// tiling layer management
 const addTilingAF = document.getElementById("add-tiling-af");
 const delTilingAF = document.getElementById("del-tiling-af");
 const selectAFTiling = document.getElementById("select-tiling-af");
@@ -1407,6 +1521,7 @@ delTilingSA.onclick = async () => {
   await doAddDel("SA", selectSATiling.value, true);
 }
 
+// bounding box coordinate form activation
 const bboxBtn = document.getElementById('bbox-button');
 const bboxWrapper = document.getElementById('bbox-container');
 bboxBtn.onclick = () => {
@@ -1420,108 +1535,7 @@ bboxBtn.onclick = () => {
     
 };
 
-const bboxDrawBtn = document.getElementById('bbox-draw-button');
-bboxDrawBtn.onclick = () => {
-    clearDrawings();
-    tileQueryOp = "BBOX-DRAW";    
-    drawBoundingBox();
-};
-
-const polyDrawBtn = document.getElementById('poly-draw-button');
-polyDrawBtn.onclick = () => {
-    clearDrawings();
-    tileQueryOp = "POLY-DRAW";
-    drawPolygon();
-};
-
-
-function getPolygonCenter(entity) {
-  const now = Cesium.JulianDate.now();
-  const hierarchy =
-    entity.polygon.hierarchy.getValue(now);
-
-  const positions = hierarchy.positions;
-
-  const bs = Cesium.BoundingSphere.fromPoints(positions);
-  return bs.center;
-}
-
-function cartesianToOlCoordinate(cartesian) {
-  const carto = Cesium.Cartographic.fromCartesian(cartesian);
-  return ol.proj.fromLonLat([
-    Cesium.Math.toDegrees(carto.longitude),
-    Cesium.Math.toDegrees(carto.latitude)
-  ]);
-}
-
-
-function moveCesiumCredits() {
-  const sceneCredits = ol3d.getCesiumScene();
-
-  if (!sceneCredits || !sceneCredits.canvas) return;
-
-  const root = sceneCredits.canvas.parentElement;
-  if (!root) return;
-
-  // Find the wrapper that contains the Cesium logo
-  const creditWrapper = [...root.children].find(el =>
-    el.querySelector && el.querySelector('.cesium-credit-logoContainer')
-  );
-
-  if (!creditWrapper) {
-    console.warn('Cesium credit wrapper not found');
-    return;
-  }
-
-  // Move to bottom-right
-  creditWrapper.style.left = 'auto';
-  creditWrapper.style.right = '10px';
-  creditWrapper.style.bottom = '10px';
-  creditWrapper.style.top = 'auto';
-  creditWrapper.style.textAlign = 'right';
-  creditWrapper.style.paddingRight = '0';
-}
-
-
-
-
-
-
-
-document.getElementById('stroke-width-slider').oninput = (e) => {
-    Object.keys(styleRegistry).forEach(dsId => {
-      styleRegistry[dsId].strokeWidth = e.target.value;
-      updateStyle(dsId);
-    });
-};
-
-document.getElementById('opac-slider').oninput = (e) => {
-    Object.keys(styleRegistry).forEach(dsId => {
-      styleRegistry[dsId].alpha = e.target.value/100.;
-      updateStyle(dsId);
-    });
-};
-
-
-function labelTiles(checked){
-  Object.keys(layerRegistry).forEach(ds_id => {
-    styleRegistry[ds_id].show_labels=checked;
-    updateStyle(ds_id)
-  })
-
-  Object.values(layerRegistry).forEach(layer => {
-    if (layer.visible){
-      applyCesiumLabels(layer["cesium"], checked)
-    }
-    });
-}
-
-
-function showZones(checked){
-  continents.forEach(continent => setLayerVisible(continent + "_ZONE", checked));
-}
-
-
+// collapse tiling layers
 function collapse(continent){
   const plusText = "\u2795";
   const minusText = "\u2796";
@@ -1537,58 +1551,7 @@ function collapse(continent){
  
 }
 
-
-async function doAddDelPerTiling(continent, tilingId, remove){
-    const dsId = continent + "_" + tilingId;
-    const dsExists = Object.keys(layerRegistry).includes(dsId)
-    if (!remove && !dsExists){
-      url = `/createGeoms?continent=${continent}&tiling_id=${tilingId}`
-      await registerDataset(dsId, url)
-    }
-    else if (remove && dsExists) {
-      map.removeLayer(layerRegistry[dsId]["ol"]);
-      if(!disable3D){
-        scene.primitives.remove(layerRegistry[dsId]["cesium"][0]);
-        scene.primitives.remove(layerRegistry[dsId]["cesium"][1]);
-        scene.primitives.remove(layerRegistry[dsId]["cesium"][2]);
-      }
-      delete layerRegistry[dsId];
-      delete styleRegistry[dsId];
-
-      
-      if(!tilingIds.includes(tilingId)){
-      const selectContTiling = document.getElementById(`select-tiling-${continent.toLowerCase()}`);
-      let childToRemove = null;
-      let children = selectContTiling.children;
-      for (var i = 0; i < children.length; i++) {
-        if(children[i].value == tilingId){
-          childToRemove = children[i];
-          break
-        }
-      }
-      selectContTiling.removeChild(childToRemove);
-     }
-    }
-}
-
-async function doAddDel(continent, tilingIdSel, remove){
-  let tilingIdsAddDel = null;
-  if(tilingIdSel == "all"){
-    tilingIdsAddDel = tilingIds;
-  }
-  else{
-    tilingIdsAddDel = [tilingIdSel];
-  }
-  
-  for(const tilingIdAddDel of tilingIdsAddDel){
-    await doAddDelPerTiling(continent, tilingIdAddDel, remove);
-  }
-
-  renderLayerSwitcher();
-  updateStyles();
-}
-
-
+// setup layer manager
 function renderLayerSwitcher() {
   const dsIds = Object.keys(layerRegistry)
   const tilingIdsContMap = {}
@@ -1652,7 +1615,6 @@ function renderLayerSwitcher() {
   const continentList = document.getElementById('continent-list');
   enableDragAndDropOuter(continentList, '.continent-item', '.tiling-item');
 
-
   const tilesTilingSelect = document.getElementById("tiles-tiling")
   tilesTilingSelect.innerHTML = "";
   for (const tilingId of tilingIds){
@@ -1665,7 +1627,6 @@ function renderLayerSwitcher() {
     tilesTilingSelect.appendChild(opt)
   }
 }
-
 
 function enableDragAndDrop(list, itemName) {
   let draggedItem = null;
@@ -1682,8 +1643,6 @@ function enableDragAndDrop(list, itemName) {
       applyLayerOrder(itemName);
     });
 
-    
-
     item.addEventListener('dragover', e => {
       e.preventDefault();
       if(draggedItem != null){
@@ -1697,7 +1656,6 @@ function enableDragAndDrop(list, itemName) {
     });
   });
 }
-
 
 function enableDragAndDropOuter(list, itemNameOuter, itemNameInner) {
   let draggedItem = null;
@@ -1740,151 +1698,7 @@ function getDragAfterElement(container, y, itemName) {
   }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
-function applyLayerOrder(itemName) {
-  const ids = [...document.querySelectorAll(itemName)]
-    .map(li => li.dataset.layerId);
-
-  // 2D: OpenLayers
-  const layers = map.getLayers();
-  ids.forEach((id, index) => {
-    const olLayer = layerRegistry[id].ol;
-    if (!olLayer) return;
-
-    layers.remove(olLayer);
-    layers.insertAt(index + 1, olLayer); // +1 if base layer at 0
-  });
-
-  // 3D: Cesium
-  ids.forEach(id => {
-    const csPrimitives = layerRegistry[id].cesium;
-    if (!csPrimitives) return;
-
-    scene.primitives.raiseToTop(csPrimitives[0]);
-    scene.primitives.raiseToTop(csPrimitives[1]);
-    scene.primitives.raiseToTop(csPrimitives[2]);
-  });
-}
-
-function hexToRgb(hex) {
-  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-  return result ? {
-    r: parseInt(result[1], 16),
-    g: parseInt(result[2], 16),
-    b: parseInt(result[3], 16)
-  } : null;
-}
-
-
-function updateStyle(ds_id){
-  const fillColorInput = document.getElementById(`FillColor_${ds_id}`);
-  if(fillColorInput){
-    fillColorInput.value = styleRegistry[ds_id]["fillColor"];
-    const strokeColorInput = document.getElementById(`StrokeColor_${ds_id}`);
-    strokeColorInput.value = styleRegistry[ds_id]["strokeColor"];
-  }
-
-  if(ds_id.includes("ZONE")){
-    return
-  }
-  const style = styleRegistry[ds_id];
-
-  layerRegistry[ds_id]["ol"].setStyle(feature => createLabelStyle(feature, ds_id));
-  if(queryData){
-    queryData.forEach(tile => {
-      const feature = layerRegistry[ds_id]["ol"].getSource().getFeatures().find(f => f.get('name') === tile);
-      if(feature){
-        const selectedStyle = createLabelStyle(feature, ds_id)
-        feature.setStyle(selectedStyle);
-      }
-      });
-  }
-
-  if(disable3D){return};
-
-  const csPrimitives = layerRegistry[ds_id]["cesium"]
-
-  if(csPrimitives == null){return};
-
-  rgb = hexToRgb(style.fillColor)
-  rgba = [rgb.r, rgb.g, rgb.b, style.alpha]
-  const csFillColor = new Cesium.Color(rgba[0]/255., rgba[1]/255., rgba[2]/255., rgba[3])
-  rgb = hexToRgb(style.strokeColor)
-  rgba = [rgb.r, rgb.g, rgb.b, style.alpha]
-  const csStrokeColor = new Cesium.Color(rgba[0]/255., rgba[1]/255., rgba[2]/255., rgba[3])
-
-  const csFillMaterial = new Cesium.Material({
-    fabric: {
-      type: 'Color',
-      uniforms: {
-        color: csFillColor
-      }
-    }
-  });
-
-  const csStrokeMaterial = new Cesium.Material({
-    fabric: {
-      type: 'Color',
-      uniforms: {
-        color: csStrokeColor
-      }
-    }
-  });
-
-  csPrimitives[0].appearance.material = csFillMaterial;
-  csPrimitives[1].appearance.material = csStrokeMaterial;
-}
-
-function updateFillColor(ds_id, fillColor){
-  console.log("HEELLOO")
-  styleRegistry[ds_id].fillColor = fillColor;
-  console.log(styleRegistry);
-  updateStyle(ds_id);
-  console.log(styleRegistry);
-}
-
-function updateStrokeWidth(ds_id, strokeWidth){
-  styleRegistry[ds_id].strokeWidth = strokeWidth;
-  updateStyle(ds_id);
-}
-
-function updateStrokeColor(ds_id, strokeColor){
-  styleRegistry[ds_id].strokeColor = strokeColor;
-  updateStyle(ds_id);
-}
-
-function setReprojMouse(flag){
-  reprojMouse = flag;
-  if (reprojMouse){
-    document.getElementById('other-crs').disabled = true
-  }
-  else{
-    document.getElementById('other-crs').disabled = false
-  }
-}
-
-document.getElementById('proj-switch-icon').onclick = () => {
-  if(toEqui7){
-    document.getElementById('proj-switch-icon').innerText = "\u2B06\uFE0F";
-    toEqui7 = false;
-    document.getElementById('x-coord-other').value = "";
-    document.getElementById('y-coord-other').value = "";
-    if(!reprojMouse){
-      document.getElementById('other-crs').value = "";
-    }
-    document.getElementById('proj-continent-selection').disabled = false;
-  }
-  else{
-    document.getElementById('proj-switch-icon').innerText = "\u2B07\uFE0F";
-    toEqui7 = true;
-    document.getElementById('x-coord-e7').value = "";
-    document.getElementById('y-coord-e7').value = "";
-    document.getElementById('proj-continent-selection').disabled = true;
-  }
-}
-
-async function init3d(){
-  await create3d();
-}
-
+// launch the application
+create2d();
 init3d();
 initLayers();
