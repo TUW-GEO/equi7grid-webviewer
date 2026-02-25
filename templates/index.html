@@ -8,15 +8,13 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="light">
-    <div id="tiling-app" class="closed">
-        <div id="tiling-app-header">
-        <span>➕ Add tiling</span>
-        <button id="minimizeTilingApp">—</button>
-      </div>
-    
-      <div id="tiling-toolbar">
-        <!-- Shapefile selector -->
-         <div id="continent-container">
+  <div class="app closed" id="tiling-app">
+    <div class="app-header">
+      <span>➕ Add tiling</span>
+      <button id="minimize-tiling-app">—</button>
+    </div>
+    <div class="toolbar">
+      <div class="continent-container">
         <label for="continents">Equi7Grid continent:</label>
         <select name="continents" id="continent-selection">
           <option value="AF">AF</option>
@@ -28,65 +26,64 @@
           <option value="SA">SA</option>
         </select>
       </div> 
-        <div id="tiling-id-container">
-          <label for="tiling">Tiling ID:</label>
+      <div class="tiling-id-container">
+        <label for="tiling">Tiling ID:</label>
         <input id="tiling-id" type="text" placeholder="TX">
-        </div>
-        <div id="tilesize-container">
-          <label for="tilesize">Tile size [m]:</label>
+      </div>
+      <div class="tilesize-container">
+        <label for="tilesize">Tile size [m]:</label>
         <input id="tilesize" type="text">
-        </div>
-        <div id="loader-container">
-        <button id="loadGrid">Load</button>
-        </div>
+      </div>
+      <div class="loader-container">
+        <button id="load-tiling">Load</button>
       </div>
     </div>
-
-    <div id="app" class="closed">
-        <div id="app-header">
-        <span>🔩 Settings</span>
-        <button id="minimizeApp">—</button>
+  </div>
+  <div class="app closed" id="settings-app">
+    <div class="app-header">
+      <span>🔩 Settings</span>
+      <button id="minimize-settings-app">—</button>
+    </div>
+    <div class="toolbar">
+      <div class="slider-wrap">
+        <span class="slider-emoji" id="stroke-emoji">✏️</span>
+        <input type="range" min="1" max="3" value="2" id="stroke-width-slider">
       </div>
-    
-      <div id="toolbar">
-        <div class="slider-wrap">
-          <span class="slider-emoji" id="strokeEmoji">✏️</span>
-          <input type="range" min="1" max="3" value="2" id="strokeWidthSlider">
-        </div>
-        <div class="slider-wrap">
-          <span class="slider-emoji" id="opacEmoji">🏁</span>
-          <input type="range" min="1" max="100" value="60" id="opacSlider">
-        </div>
-        <div id="label-tiles-switch-container">
-          Show tile labels <input type="checkbox" id="tileLabelCheckbox" onchange="labelTiles(this.checked)"/>
-        </div>
+      <div class="slider-wrap">
+        <span class="slider-emoji" id="opac-emoji">🏁</span>
+        <input type="range" min="1" max="100" value="60" id="opac-slider">
+      </div>
+      <div class="label-tiles-switch-container">
+          Show tile labels <input type="checkbox" class="tile-label-checkbox" onchange="labelTiles(this.checked)"/>
       </div>
     </div>
-
-    <div id="proj-app" class="closed">
-        <div id="proj-app-header">
-        <span>📐 Coordinate Transformation</span>
-        <button id="minimizeProjApp">—</button>
+  </div>
+  <div class="app closed" id="proj-app">
+    <div class="app-header">
+      <span>📐 Coordinate Transformation</span>
+      <button id="minimize-proj-app">—</button>
+    </div>
+    <div class="toolbar">
+      <div class="coord-container">
+        X: <input class="coord" id="x-coord-other" type="number">
       </div>
-      <div id="proj-toolbar">
-      <div id="x-other-container">
-        X: <input id="xCoordOther" type="number">
+      <div class="coord-container">
+        Y: <input class="coord" id="y-coord-other" type="number">
       </div>
-      <div id="y-other-container">
-        Y: <input id="yCoordOther" type="number">
-        </div>
-        <div id="crs-other-container">
-        CRS: <input id="otherCRS" type="text">
-        </div>
-        <div id="proj-switch-container"><button id="proj-switch-icon" title="Change projection order">⬇️</button></div>
-      <div id="x-e7-container">
-        X (Equi7): <input id="xCoordE7" type="number">
-        </div>
-        <div id="y-e7-container">
-        Y (Equi7): <input id="yCoordE7" type="number">
-        </div>
-        <div id="crs-e7-container">
-        CRS (Equi7): <select name="continents" id="proj-continent-selection" disabled>
+      <div class="coord-container">
+        CRS: <input class="coord" id="other-crs" type="text">
+      </div>
+      <div class="proj-switch-container">
+        <button id="proj-switch-icon" title="Change projection order">⬇️</button>
+      </div>
+      <div class="coord-container">
+        X (Equi7): <input class="coord-e7" id="x-coord-e7" type="number">
+      </div>
+      <div class="coord-container">
+        Y (Equi7): <input class="coord-e7" id="y-coord-e7" type="number">
+      </div>
+      <div class="coord-container">CRS (Equi7): 
+        <select name="continents" id="proj-continent-selection" disabled>
           <option value="AF">AF (EPSG: 27701)</option>
           <option value="AN">AN (EPSG: 27702)</option>
           <option value="AS">AS (EPSG: 27703)</option>
@@ -95,204 +92,216 @@
           <option value="OC">OC (EPSG: 27706)</option>
           <option value="SA">SA (EPSG: 27707)</option>
         </select>
-        </div>
-
-        <div id="map-coord-switch-container">
-      Use map coordinates <input type="checkbox" id="reprojectMouseCheckbox" onchange="setReprojMouse(this.checked)"></input>
+      </div>
+      <div class="coord-container">
+      Use map coordinates <input type="checkbox" onchange="setReprojMouse(this.checked)"></input>
+      </div>
+      <button id="reproject-coord">Reproject</button>
     </div>
-    <button id="reprojectCoord">Reproject</button>
   </div>
+  <div class="app closed" id="layer-app">
+    <div class="app-header">
+      <span>📚 Layer Manager</span>
+      <button id="minimize-layer-app">—</button>
     </div>
-
-    <div id="layer-app" class="closed">
-        <div id="layer-app-header">
-        <span>📚 Layer Manager</span>
-        <button id="minimizeLayerApp">—</button>
-      </div>
-      <div id="layer-toolbar">
-        <ul id="continentList">
-          <li id="AF", draggable="true" class="continent-item">
-          <div id="AF-header" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling" onclick="collapse('AF')">➖</span>
-          <span class="label">Africa (AF)</span>
-          <span class="selectTiling"><select id="selectAFTiling">
-            <option value="T6">T6</option>
-            <option value="T3">T3</option>
-            <option value="T1">T1</option>
-            <option value="all">all</option>
-          </select>
-        </span>
-        <span class="doAddDel" id="addTilingAF">➕</span>
-        <span class="changeAddDel" id="delTilingAF">🚮</span>
-      </div>
-          </li>
-
-          <li id="AN", draggable="true" class="continent-item">
-          <div id="AN-header" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling" onclick="collapse('AN')">➖</span>
-          <span class="label">Antarctica (AN)</span>
-          <span class="selectTiling"><select id="selectANTiling">
-            <option value="T6">T6</option>
-            <option value="T3">T3</option>
-            <option value="T1">T1</option>
-            <option value="all">all</option>
-          </select>
-        </span>
-        <span class="doAddDel" id="addTilingAN">➕</span>
-        <span class="changeAddDel" id="delTilingAN">🚮</span>
-      </div>
-          </li>
-
-          <li id="AS", draggable="true" class="continent-item">
-          <div id="AS-header" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling" onclick="collapse('AS')">➖</span>
-          <span class="label">Asia (AS)</span>
-          <span class="selectTiling"><select id="selectASTiling">
-            <option value="T6">T6</option>
-            <option value="T3">T3</option>
-            <option value="T1">T1</option>
-            <option value="all">all</option>
-          </select>
-        </span>
-        <span class="doAddDel" id="addTilingAS">➕</span>
-        <span class="changeAddDel" id="delTilingAS">🚮</span>
-      </div>
-          </li>
-
-          <li id="EU", draggable="true" class="continent-item">
-          <div id="EU-header" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling" onclick="collapse('EU')">➖</span>
-          <span class="label">Europe (EU)</span>
-          <span class="selectTiling"><select id="selectEUTiling">
-            <option value="T6">T6</option>
-            <option value="T3">T3</option>
-            <option value="T1">T1</option>
-            <option value="all">all</option>
-          </select>
-        </span>
-        <span class="doAddDel" id="addTilingEU">➕</span>
-        <span class="changeAddDel" id="delTilingEU">🚮</span>
-      </div>
-          </li>
-
-          <li id="NA", draggable="true" class="continent-item">
-          <div id="NA-header" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling" onclick="collapse('NA')">➖</span>
-          <span class="label">North Am. (NA)</span>
-          <span class="selectTiling"><select id="selectNATiling">
-            <option value="T6">T6</option>
-            <option value="T3">T3</option>
-            <option value="T1">T1</option>
-            <option value="all">all</option>
-          </select>
-        </span>
-        <span class="doAddDel" id="addTilingNA">➕</span>
-        <span class="changeAddDel" id="delTilingNA">🚮</span>
-      </div>
-          </li>
-
-          <li id="OC", draggable="true" class="continent-item">
-          <div id="OC-header" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling" onclick="collapse('OC')">➖</span>
-          <span class="label">Oceania (OC)</span>
-          <span class="selectTiling"><select id="selectOCTiling">
-            <option value="T6">T6</option>
-            <option value="T3">T3</option>
-            <option value="T1">T1</option>
-            <option value="all">all</option>
-          </select>
-        </span>
-        <span class="doAddDel" id="addTilingOC">➕</span>
-        <span class="changeAddDel" id="delTilingOC">🚮</span>
-      </div>
-          </li>
-
-          <li id="SA", draggable="true" class="continent-item">
-          <div id="SA-header" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling" onclick="collapse('SA')">➖</span>
-          <span class="label">South Am. (SA)</span>
-          <span class="selectTiling"><select id="selectSATiling">
-            <option value="T6">T6</option>
-            <option value="T3">T3</option>
-            <option value="T1">T1</option>
-            <option value="all">all</option>
-          </select>
-        </span>
-        <span class="doAddDel" id="addTilingSA">➕</span>
-        <span class="changeAddDel" id="delTilingSA">🚮</span>
-      </div>
-          </li>
-        </ul>
+    <div class="toolbar" id="layer-toolbar">
+      <ul id="continent-list">
+        <li id="af" draggable="true" class="continent-item">
+          <div class="continent-header">
+            <span class="toggle-tiling" onclick="collapse('AF')">➖</span>
+            <span class="label">Africa (AF)</span>
+            <span class="select-tiling">
+              <select id="select-tiling-af">
+                <option value="T6">T6</option>
+                <option value="T3">T3</option>
+                <option value="T1">T1</option>
+                <option value="all">all</option>
+              </select>
+            </span>
+            <span class="do-add-del" id="add-tiling-af">➕</span>
+            <span class="change-add-del" id="del-tiling-af">🚮</span>
+          </div>
+        </li>
+        <li id="an" draggable="true" class="continent-item">
+          <div class="continent-header">
+            <span class="toggle-tiling" onclick="collapse('AN')">➖</span>
+            <span class="label">Antarctica (AN)</span>
+            <span class="select-tiling">
+              <select id="select-tiling-an">
+                <option value="T6">T6</option>
+                <option value="T3">T3</option>
+                <option value="T1">T1</option>
+                <option value="all">all</option>
+              </select>
+            </span>
+            <span class="do-add-del" id="add-tiling-an">➕</span>
+            <span class="change-add-del" id="del-tiling-an">🚮</span>
+          </div>
+        </li>
+        <li id="as" draggable="true" class="continent-item">
+          <div class="continent-header">
+            <span class="toggle-tiling" onclick="collapse('AS')">➖</span>
+            <span class="label">Asia (AS)</span>
+            <span class="select-tiling">
+              <select id="select-tiling-as">
+                <option value="T6">T6</option>
+                <option value="T3">T3</option>
+                <option value="T1">T1</option>
+                <option value="all">all</option>
+              </select>
+            </span>
+            <span class="do-add-del" id="add-tiling-as">➕</span>
+            <span class="change-add-del" id="del-tiling-as">🚮</span>
+          </div>
+        </li>
+        <li id="eu" draggable="true" class="continent-item">
+          <div class="continent-header">
+            <span class="toggle-tiling" onclick="collapse('EU')">➖</span>
+            <span class="label">Europe (EU)</span>
+            <span class="select-tiling">
+              <select id="select-tiling-eu">
+                <option value="T6">T6</option>
+                <option value="T3">T3</option>
+                <option value="T1">T1</option>
+                <option value="all">all</option>
+              </select>
+            </span>
+            <span class="do-add-del" id="add-tiling-eu">➕</span>
+            <span class="change-add-del" id="del-tiling-eu">🚮</span>
+          </div>
+        </li>
+        <li id="na" draggable="true" class="continent-item">
+          <div class="continent-header">
+            <span class="toggle-tiling" onclick="collapse('NA')">➖</span>
+            <span class="label">North Am. (NA)</span>
+            <span class="select-tiling">
+              <select id="select-tiling-na">
+                <option value="T6">T6</option>
+                <option value="T3">T3</option>
+                <option value="T1">T1</option>
+                <option value="all">all</option>
+              </select>
+            </span>
+            <span class="do-add-del" id="add-tiling-na">➕</span>
+            <span class="change-add-del" id="del-tiling-na">🚮</span>
+          </div>
+        </li>
+        <li id="oc" draggable="true" class="continent-item">
+          <div class="continent-header">
+            <span class="toggle-tiling" onclick="collapse('OC')">➖</span>
+            <span class="label">Oceania (OC)</span>
+            <span class="select-tiling">
+              <select id="select-tiling-oc">
+                <option value="T6">T6</option>
+                <option value="T3">T3</option>
+                <option value="T1">T1</option>
+                <option value="all">all</option>
+              </select>
+            </span>
+            <span class="do-add-del" id="add-tiling-oc">➕</span>
+            <span class="change-add-del" id="del-tiling-oc">🚮</span>
+          </div>
+        </li>
+        <li id="sa" draggable="true" class="continent-item">
+          <div class="continent-header">
+            <span class="toggle-tiling" onclick="collapse('SA')">➖</span>
+            <span class="label">South Am. (SA)</span>
+            <span class="select-tiling">
+              <select id="select-tiling-sa">
+                <option value="T6">T6</option>
+                <option value="T3">T3</option>
+                <option value="T1">T1</option>
+                <option value="all">all</option>
+              </select>
+            </span>
+            <span class="do-add-del" id="add-tiling-sa">➕</span>
+            <span class="change-add-del" id="del-tiling-sa">🚮</span>
+          </div>
+        </li>
+      </ul>
     </div>
+  </div>
+  <div class="app closed" id="tile-app">
+    <div class="app-header">
+      <span>🔍 Tile Query</span>
+      <button id="minimize-tile-app">—</button>
     </div>
-
-    <div id="tile-app" class="closed">
-        <div id="tile-app-header">
-        <span>🔍 Tile Query</span>
-        <button id="minimizeTileApp">—</button>
-      </div>
-      <div id="query-tools-container">
-      <button id="bboxBtn", title="Bounding box">&#x2328;&#xFE0F;</button>
-      <button id="bboxDrawBtn", title="Draw bounding box">🔲</button>
-      <button id="polyDrawBtn", title="Draw polygon">✏️</button>
-      <span style="margin-left: 45px; margin-top: 20px;">
-        <input type="text" id="samplingInput" placeholder="500"> [m] 
-        <select id="tilesTiling">
-          </select>
-        </span>
-      </div>
-      <div class="bbox" id="bboxWrapper">
+    <div class="query-tools-container">
+      <button id="bbox-button", title="Bounding box">&#x2328;&#xFE0F;</button>
+      <button id="bbox-draw-button", title="Draw bounding box">🔲</button>
+      <button id="poly-draw-button", title="Draw polygon">✏️</button>
+      <span class="tiles-grid-settings">
+        <input type="text" id="sampling-input" placeholder="500"> [m] 
+        <select id="tiles-tiling"></select>
+      </span>
+    </div>
+    <div class="bbox" id="bbox-container">
       <label class="north">North: <input id="bbox_n" type="text"></label>
       <label class="west">West: <input id="bbox_w" type="text"></label>
       <label class="east">East: <input id="bbox_e" type="text"></label>
       <label class="south">South: <input id="bbox_s" type="text"></label>
-      </div>
-      <div>
-      <button id="queryTiles">Query tiles</button>
-      </div>
-      <div id="tileResults">
-        <ul id="tileList">
-        </ul>
-      </div>
-      <div id="copy-tiles-container">
-      <button id="copy-tilenames-icon", title="Copy tilenames">📋</button>
-      <button id="copy-traffos-icon", title="Copy geotransformation parameters">🌐</button>
-      <button id="copy-e7tiles-icon", title="Copy Equi7Grid tiles">🐍</button>
-      </div>
     </div>
-    <button id="tiling-app-icon" title="Tiling manager">➕</button>
-    <button id="proj-app-icon" title="Open coordinate transformation">📐</button>
-    <button id="layer-app-icon" title="Layer manager">📚</button>
-    <button id="tile-app-icon" title="Tile Query">🔍</button>
-    <button id="app-icon" title="Settings">🔩</button>
-
-    <button id="toggle-3d-icon" title="Toggle 3D view">🌍</button>  
-    
-    <span id="coords"><b>Lon:</b> -, <b>Lat:</b> -</span>
-    <div id="map-frame">
+    <div>
+      <button id="query-tiles">Query tiles</button>
+    </div>
+    <div class="tile-results">
+      <ul id="tile-list"></ul>
+    </div>
+    <div class="copy-tiles-container">
+      <button id="copy-tilenames-icon" class="copy-tile-icon" title="Copy tilenames">📋</button>
+      <button id="copy-traffos-icon" class="copy-tile-icon" title="Copy geotransformation parameters">🌐</button>
+      <button id="copy-e7tiles-icon" class="copy-tile-icon" title="Copy Equi7Grid tiles">🐍</button>
+    </div>
+  </div>
+  <button class="app-icon" id="tiling-app-icon" title="Tiling manager">➕</button>
+  <button class="app-icon" id="proj-app-icon" title="Open coordinate transformation">📐</button>
+  <button class="app-icon" id="layer-app-icon" title="Layer manager">📚</button>
+  <button class="app-icon" id="tile-app-icon" title="Tile Query">🔍</button>
+  <button class="app-icon" id="settings-app-icon" title="Settings">🔩</button>
+  <button id="toggle-3d-icon" title="Toggle 3D view">🌍</button>      
+  <span id="pointer-coords"><b>Lon:</b> -, <b>Lat:</b> -</span>
+  <div class="map-frame">
     <div id="map" tabindex="0"></div>
   </div>
-
-  <div id="header-frame">
+  <div class="header-frame">
     <span id="header-title">
-    <button id="company-icon" title="TU Wien GEO"><a href="https://www.tuwien.at/mg/geo"><img src="{{ url_for('static', filename='imgs/tuwgeo_logo.png') }}" alt="TU Wien GEO logo" id="tuwgeo-icon-logo" height="45px"></a></button>
-    <button id="company-icon" title="EODC"><a href="https://eodc.eu/"><img src="{{ url_for('static', filename='imgs/eodc_logo_2025_screen.png') }}" alt="EODC logo" id="eodc-logo" height="45px"></a></button>
-    <span style="margin-left: 10px; font-size: 35px; text-align: center; vertical-align: top;">The Equi7Grid Webviewer</span></span>
+      <button id="company-icon" title="TU Wien GEO">
+        <a href="https://www.tuwien.at/mg/geo">
+          <img src="{{ url_for('static', filename='imgs/tuwgeo_logo.png') }}" alt="TU Wien GEO logo" id="tuwgeo-icon-logo" height="45px">
+        </a>
+      </button>
+      <button id="company-icon" title="EODC">
+        <a href="https://eodc.eu/">
+          <img src="{{ url_for('static', filename='imgs/eodc_logo_2025_screen.png') }}" alt="EODC logo" id="eodc-logo" height="45px">
+        </a>
+      </button>
+      <span style="margin-left: 10px; font-size: 35px; text-align: center; vertical-align: top;">The Equi7Grid Webviewer</span>
+    </span>
     <span id="header-tools">
-    <span class="github-icon"><a href="https://github.com/TUW-GEO/Equi7Grid" style="display: inline-block; margin-top: 5px;"><img src="{{ url_for('static', filename='imgs/github-mark.svg') }}" alt="GitHub icon" id="github-icon-logo" width="30px" height="30px"></a></span>
-    <span class="help-icon"><a href="https://tuw-geo.github.io/equi7grid/latest/" style="text-decoration: none">📖</a></span>
-    <span class="help-icon"><a href="https://github.com/TUW-GEO/Equi7Grid/issues/new" style="text-decoration: none">📫</a></span></span>
-    <!--<button id="docs-icon" title="Equi7Grid documentation"></button>
-    <button id="issue-icon" title="Report issue"></button></span>-->
+      <span class="github-icon">
+        <a href="https://github.com/TUW-GEO/Equi7Grid" style="display: inline-block; margin-top: 5px;">
+          <img src="{{ url_for('static', filename='imgs/github-mark.svg') }}" alt="GitHub icon" id="github-icon-logo" width="30px" height="30px">
+        </a>
+      </span>
+      <span class="help-icon">
+        <a href="https://tuw-geo.github.io/Equi7Grid/latest/" style="text-decoration: none">📖</a>
+      </span>
+      <span class="help-icon">
+        <a href="https://github.com/TUW-GEO/Equi7Grid/issues/new" style="text-decoration: none">📫</a>
+      </span>
+    </span>
   </div>
-
-  <div id="cesium-zoom" class="cesium-zoom">
+  <div class="cesium-zoom">
     <button id="zoom-in">+</button>
     <button id="zoom-out">−</button>
   </div>
-
-    <div id="popup" class="ol-popup"></div> 
-
-    <script src="https://unpkg.com/bowser@2.7.0/es5.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="https://cdn.jsdelivr.net/npm/proj4/dist/proj4.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/ol/dist/ol.js"></script>
-    <script src="https://unpkg.com/ol-cesium/dist/olcesium.js"></script>
-      <script src="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Cesium.js"></script>
-      <!--<script src="https://unpkg.com/ol-mapbox-style/dist/olms.js"></script>-->
-    <script src="{{ url_for('static', filename='main.js') }}"></script>
+  <div id="popup" class="ol-popup"></div> 
+  <script src="https://unpkg.com/bowser@2.7.0/es5.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/proj4/dist/proj4.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/ol/dist/ol.js"></script>
+  <script src="https://unpkg.com/ol-cesium/dist/olcesium.js"></script>
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.113/Build/Cesium/Cesium.js"></script>
+  <script src="{{ url_for('static', filename='main.js') }}"></script>
 </body>
 </html>

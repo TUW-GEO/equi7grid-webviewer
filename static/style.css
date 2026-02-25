@@ -1,5 +1,7 @@
 :root {
   --header-height: 50px;
+  --bg: #ffffff;
+  --fg: #000000;
 }
 
 html, body {
@@ -9,8 +11,7 @@ html, body {
     font-family:'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-/* MAP FRAME */
-#map-frame {
+.map-frame {
     position: absolute;
     inset: 10px;
     border: 3px solid #555;
@@ -19,7 +20,7 @@ html, body {
     margin-top: var(--header-height);
 }
 
-#header-frame {
+.header-frame {
     position: absolute;
     inset: 2px;
     overflow: hidden;
@@ -32,7 +33,7 @@ html, body {
     height: 100%;
 }
 
-#coords {
+#pointer-coords {
     position: absolute;
     z-index: 1000;
     right: 4em;
@@ -65,28 +66,6 @@ html, body {
     border-radius: 4px;
 }
 
-/*
-.cesium-zoom button {
-top: 0.5em;
-    right: 0.5em;
-    left: auto;
-    z-index: 3000;
-     position: absolute;
-  top: 80px;
-  right: 10px;
-  z-index: 3000;
-
-  width: 25px;
-  height: 25px;
-  margin-bottom: -2px;
-  font-size: 14px;
-  font-weight: bold;
-  color:#555;
-  display: block;
-  background: rgba(128, 128, 128, 0.25);
-  border-color: #555;
-}
-*/
 .cesium-zoom button {
     display: none;
     margin: 1px;
@@ -104,8 +83,7 @@ top: 0.5em;
     border-radius: 2px;
 }
 
-/* GENERAL APP PANEL */
-#app {
+.app {
     position: absolute;
     top: calc(20px + var(--header-height));
     left: 20px;
@@ -120,8 +98,11 @@ top: 0.5em;
     flex-direction: column;
 }
 
+.app.closed {
+    display: none;
+}
 
-#app-header {
+.app-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -131,7 +112,7 @@ top: 0.5em;
     border-radius: 10px 10px 0 0;
 }
 
-#app-header button {
+.app-header button {
     background: none;
     border: none;
     color: white;
@@ -139,391 +120,55 @@ top: 0.5em;
     cursor: pointer;
 }
 
-
-#toolbar {
+.toolbar {
     padding: 10px;
     overflow-y: auto;
 }
 
-/*
-#toolbar input,
-#toolbar select{
-    width: 100%;
-    margin-bottom: 6px;
-}
-*/
-#toolbar.closed {
+.toolbar.closed {
     display: none;
 }
 
-#app-icon {
+.app-icon{
     position: absolute;
+    left: 20px;
+    width: 0px;
+    height: 0px;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    z-index: 2001;
+    display: block;
+    fill: none;
+    outline: none;
+    box-shadow: none;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+}
+
+.app-icon.visible {
+    display: block;
+}
+
+#settings-app-icon {
     top: calc(180px + var(--header-height));
-    left: 20px;
-    width: 0px;
-    height: 0px;
-    /*border-radius: 50%;*/
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    /*background: #444;*/
-    /*color: white;*/
-    z-index: 2001;
-    display: block;
-    fill: none;
-    outline: none;
-    box-shadow: none;
-    background: transparent;
-    padding: 0;
-    margin: 0;
 }
 
-#app.closed {
-    display: none;
-}
-
-#app-icon.visible {
-    display: block;
-}
-
-
-/* PROJ APP PANEL */
-#proj-app {
-    position: absolute;
-    top: calc(20px + var(--header-height));
-    left: 20px;
-    width: 300px;
-    height: calc(100% - 40px - var(--header-height));
-    background: var(--bg);
-    color: var(--fg);
-    border-radius: 10px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-    z-index: 2000;
-    display: flex;
-    flex-direction: column;
-}
-
-/* HEADER */
-#proj-app-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 10px;
-    background: #444;
-    color: white;
-    border-radius: 10px 10px 0 0;
-}
-
-#proj-app-header button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
-}
-
-/* TOOLBAR */
-#proj-toolbar {
-    padding: 10px;
-    overflow-y: auto;
-}
-
-/*
-#proj-toolbar input,
-#proj-toolbar select,
-#proj-toolbar button {
-    width: 100%;
-    margin-bottom: 6px;
-}*/
-#proj-toolbar.closed {
-    display: none;
-}
-
-/* MINIMIZED ICON */
 #proj-app-icon {
-    position: absolute;
     top: calc(60px + var(--header-height));
-    left: 20px;
-    width: 0px;
-    height: 0px;
-    /*border-radius: 50%;*/
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    /*background: #444;*/
-    /*color: white;*/
-    z-index: 2001;
-    display: block;
-    fill: none;
-    outline: none;
-    box-shadow: none;
-    background: transparent;
-    padding: 0;
-    margin: 0;
 }
 
-/* STATES */
-#proj-app.closed {
-    display: none;
-}
-
-#proj-app-icon.visible {
-    display: block;
-}
-
-
-/* TILING MANAGER */
-#tiling-app {
-    position: absolute;
-    top: calc(20px + var(--header-height));
-    left: 20px;
-    width: 300px;
-    height: calc(100% - 40px - var(--header-height));
-    background: var(--bg);
-    color: var(--fg);
-    border-radius: 10px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-    z-index: 2000;
-    display: flex;
-    flex-direction: column;
-}
-
-/* HEADER */
-#tiling-app-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 10px;
-    background: #444;
-    color: white;
-    border-radius: 10px 10px 0 0;
-}
-
-#tiling-app-header button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
-}
-
-/* TOOLBAR */
-#tiling-toolbar {
-    padding: 10px;
-    overflow-y: auto;
-}
-
-/*
-#tiling-toolbar button {
-    width: 100%;
-    margin-bottom: 6px;
-}*/
-#tiling-toolbar.closed {
-    display: none;
-}
-
-/* MINIMIZED ICON */
 #tiling-app-icon {
-    position: absolute;
     top: calc(20px + var(--header-height));
-    left: 20px;
-    width: 0px;
-    height: 0px;
-    /*border-radius: 50%;*/
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    /*background: #444;*/
-    /*color: white;*/
-    z-index: 2001;
-    display: block;
-    fill: none;
-    outline: none;
-    box-shadow: none;
-    background: transparent;
-    padding: 0;
-    margin: 0;
 }
 
-/* STATES */
-#tiling-app.closed {
-    display: none;
-}
-
-#tiling-app-icon.visible {
-    display: block;
-}
-
-
-
-/* LAYER APP PANEL */
-#layer-app {
-    position: absolute;
-    top: calc(20px + var(--header-height));
-    left: 20px;
-    width: 300px;
-    height: calc(100% - 40px - var(--header-height));
-    background: var(--bg);
-    color: var(--fg);
-    border-radius: 10px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-    z-index: 2000;
-    display: flex;
-    flex-direction: column;
-}
-
-/* HEADER */
-#layer-app-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 10px;
-    background: #444;
-    color: white;
-    border-radius: 10px 10px 0 0;
-}
-
-#layer-app-header button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
-}
-
-/* TOOLBAR */
-#layer-toolbar {
-    padding: 10px;
-    overflow-y: auto;
-}
-
-/*
-#layer-toolbar input,
-#layer-toolbar select,
-#layer-toolbar button {
-    width: 100%;
-    margin-bottom: 6px;
-}
-    */
-#layer-toolbar.closed {
-    display: none;
-}
-
-/* MINIMIZED ICON */
 #layer-app-icon {
-    position: absolute;
     top: calc(100px + var(--header-height));
-    left: 20px;
-    width: 0px;
-    height: 0px;
-    /*border-radius: 50%;*/
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    /*background: #444;*/
-    /*color: white;*/
-    z-index: 2001;
-    display: block;
-    fill: none;
-    outline: none;
-    box-shadow: none;
-    background: transparent;
-    padding: 0;
-    margin: 0;
 }
 
-/* STATES */
-#layer-app.closed {
-    display: none;
-}
-
-#layer-app-icon.visible {
-    display: block;
-}
-
-
-
-/* TILE APP PANEL */
-#tile-app {
-    position: absolute;
-    top: calc(20px + var(--header-height));
-    left: 20px;
-    width: 300px;
-    height: calc(100% - 40px - var(--header-height));
-    background: var(--bg);
-    color: var(--fg);
-    border-radius: 10px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-    z-index: 2000;
-    display: flex;
-    flex-direction: column;
-}
-
-/* HEADER */
-#tile-app-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 10px;
-    background: #444;
-    color: white;
-    border-radius: 10px 10px 0 0;
-}
-
-#tile-app-header button {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 18px;
-    cursor: pointer;
-}
-
-/* TOOLBAR */
-#tile-toolbar {
-    padding: 10px;
-    overflow-y: auto;
-}
-
-#tile-toolbar input,
-#tile-toolbar select,
-#tile-toolbar button {
-    width: 100%;
-    margin-bottom: 6px;
-}
-#tile-toolbar.closed {
-    display: none;
-}
-
-/* MINIMIZED ICON */
 #tile-app-icon {
-    position: absolute;
     top: calc(140px + var(--header-height));
-    left: 20px;
-    width: 0px;
-    height: 0px;
-    /*border-radius: 50%;*/
-    border: none;
-    font-size: 22px;
-    cursor: pointer;
-    /*background: #444;*/
-    /*color: white;*/
-    z-index: 2001;
-    display: block;
-    fill: none;
-    outline: none;
-    box-shadow: none;
-    background: transparent;
-    padding: 0;
-    margin: 0;
-}
-
-/* STATES */
-#tile-app.closed {
-    display: none;
-}
-
-#tile-app-icon.visible {
-    display: block;
 }
 
 .bbox {
@@ -567,19 +212,13 @@ top: 0.5em;
   white-space: nowrap;
 }
 
-#queryTiles{
+#query-tiles{
     width: 100px;
     margin-top: 10px;
     margin-left: 1rem;
 }
 
-#copyTiles{
-    width: 100px;
-    margin-left: 1rem;
-    margin-bottom: 10px;
-}
-
-#tileResults{
+.tile-results{
     box-shadow: 0 6px 20px rgba(0,0,0,0.4);
     border-radius: 10px;
     border-color: #999;
@@ -592,10 +231,11 @@ top: 0.5em;
     overflow-y: auto;
 }
 
-#tileList {
+#tile-list {
   list-style: none;
   padding: 0;
 }
+
 .tile-item {
   padding: 6px;
   margin-left: 10px;
@@ -611,19 +251,8 @@ top: 0.5em;
   cursor: pointer;
 }
 
-.tile-item-active {
-  padding: 6px;
-  margin-left: 10px;
-  margin-right: 10px;
-  margin-bottom: 5px;
-  border-radius: 10px;
-  box-shadow: 0 6px 20px rgba(241, 238, 238, 0.4);
+.tile-item.active {
   background: rgba(251, 186, 74, 0.6);
-  color: black;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
 }
 
 
@@ -651,52 +280,44 @@ top: 0.5em;
 }
 
 
-#continentList {
+#continent-list {
   list-style: none;
   padding: 0;
   vertical-align: middle;
   margin-top: 20px;
 }
+
 .continent-item {
   padding-left: 0;
-  /*margin-left: -20px;*/
-  /*padding: 6px;*/
-  /*margin: 4px 0;*/
   background: white;
   color: black;
   cursor: grab;
-  /*display: flex;*/
-  /*align-items: center;*/
   gap: 8px;
   vertical-align: middle;
-
   padding-top: 5px;
   padding-bottom: 5px;
-
-    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-    border-radius: 10px;
-    /*border-color: #999;*/
-    background-color:#f0f0f0;
-    /*margin-top: 20px;
-    margin-left: 10px;
-    margin-right: 10px;
-    margin-bottom: 25px;*/
-    margin-top: 10px;
-    margin-left: 10px;
-    margin-right: 10px;
-    /*height: 100%;*/
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+  border-radius: 10px;  
+  background-color:#f0f0f0;
+  margin-top: 10px;
+  margin-left: 10px;
+  margin-right: 10px;
 }
+
 .continent-item.dragging {
   opacity: 0.5;
 }
 
+.continent-header{
+    margin-bottom: 10px; 
+    padding-left: 10px;
+}
 
-.tilingList {
+.tiling-list {
   list-style: none;
   padding: 0;
   margin-left: 0px;
 }
-
 
 .tiling-item {
   padding: 6px;
@@ -707,79 +328,38 @@ top: 0.5em;
   box-shadow: 0 6px 20px rgba(241, 238, 238, 0.4);
   background: rgba(122, 122, 122, 0.6);
   color: black;
-  /*display: flex;*/
   align-items: center;
   gap: 8px;
   cursor: grab;
-  /*padding-left: 0;*/
-  /*padding: 6px;*/
-  /*margin-top: 4px;
-  background: white;
-  color: black;
-  cursor: grab;*/
-  /*display: flex;*/
-  /*align-items: center;*/
-  /*gap: 8px;*/
-  /*height: 35px;*/
-  /*vertical-align: middle;*/
-  /*text-align: center;*/
 }
 
 .tiling-item.dragging {
   opacity: 0.5;
 }
 
-
 .continent-item.collapsed .tiling-item {
   display: none;
 }
 
-.toggleTiling{
+.toggle-tiling{
     cursor: pointer;
 }
 
-.changeAddDel{
+.change-add-del{
     float: right;
     margin-right: 5px;
     cursor: pointer;
 }
 
-.doAddDel{
+.do-add-del{
     float: right;
     margin-right: 5px;
     cursor: pointer;
 }
 
-.selectTiling{
+.select-tiling{
     float: right;
     margin-right: 5px;
-}
-
-/*
-.layer-item button {
-    border: none;
-    font-size: 16px;
-    cursor: pointer;
-    z-index: 2003;
-    display: block;
-    fill: none;
-    outline: none;
-    box-shadow: none;
-    background: transparent;
-    padding: 0;
-    margin: 0;
-}
-*/
-
-/* THEMES */
-body.light {
-    --bg: #ffffff;
-    --fg: #000000;
-}
-
-body.dark {
-    --bg: #1e1e1e;
-    --fg: #f0f0f0;
 }
 
 #company-icon {
@@ -809,7 +389,7 @@ body.dark {
 
 .github-icon img{
     display: inline-block;
-    vertical-align: middle;   /* 🔑 key line */
+    vertical-align: middle;
     margin-bottom: 12px; 
 }
 
@@ -819,45 +399,14 @@ body.dark {
     text-decoration: none;
 }
 
-
-/*
-#docs-icon {
-    fill: none;
-    outline: none;
-    box-shadow: none;
-    background: transparent;
-    border: none;
-    height: 50px;
-    line-height: 50px;
-    font-size: 40px;
-}
-*/
-/*
-#issue-icon {
-    fill: none;
-    outline: none;
-    box-shadow: none;
-    background: transparent;
-    padding: 0;
-    margin: 0;
-    border: none;
-    font-size: 40px;
-}
-*/
-
-#layer-toolbar input[type="color"],
-#toolbar input[type="color"],
-#proj-toolbar input[type="color"] {
+#layer-toolbar input[type="color"]{
   width: 15px !important;
   height: 15px;
-  /*margin-top: 4px;*/
   padding: 0;
   border: none;
   background: none;
-  /*flex: 0 0 auto;*/
   border-radius: 50%;
   cursor: pointer;
-  /*align-items: center;*/
 }
 
 input[type="color"]::-webkit-color-swatch-wrapper {
@@ -869,13 +418,10 @@ input[type="color"]::-webkit-color-swatch {
   border-radius: 50%;
 }
 
-/* Firefox */
 input[type="color"]::-moz-color-swatch {
   border-radius: 50%;
 }
 
-
-/* Move Cesium logo + attribution to bottom-right */
 .cesium-viewer-bottom {
   right: 10px !important;
   left: auto !important;
@@ -883,12 +429,11 @@ input[type="color"]::-moz-color-swatch {
   text-align: right;
 }
 
-/* Optional: align items nicely */
 .cesium-viewer-credits {
   justify-content: flex-end;
 }
 
-#loader-container{
+.loader-container{
     margin-left: 10px;
     margin-right: 10px;
     margin-top: 30px;
@@ -896,15 +441,13 @@ input[type="color"]::-moz-color-swatch {
     width: 150px;
 }
 
-
-#loadGrid{
+#load-tiling{
     width: 100px;
 }
 
-
 .loader {
-    border: 8px solid #f3f3f3; /* Light grey */
-    border-top: 8px solid #3498db; /* Blue */
+    border: 8px solid #f3f3f3;
+    border-top: 8px solid #3498db;
     border-radius: 50%;
     width: 25px;
     height: 25px;
@@ -919,12 +462,12 @@ input[type="color"]::-moz-color-swatch {
     100% { transform: rotate(360deg); }
 }
 
-#query-tools-container{
+.query-tools-container{
     margin-left: 10px;
     width: 300px;
 }
 
-#bboxBtn {
+#bbox-button {
     width: 15px;
     height: 10px;
     border: none;
@@ -939,7 +482,7 @@ input[type="color"]::-moz-color-swatch {
     padding: 0;
 }
 
-#bboxDrawBtn {
+#bbox-draw-button {
     margin-left: 40px;
     width: 1px;
     height: 1px;
@@ -955,7 +498,7 @@ input[type="color"]::-moz-color-swatch {
     padding: 0;
 }
 
-#polyDrawBtn {
+#poly-draw-button {
     margin-left: 40px;
     width: 1px;
     height: 1px;
@@ -971,12 +514,12 @@ input[type="color"]::-moz-color-swatch {
     padding: 0;
 }
 
-#copy-tiles-container{
+.copy-tiles-container{
     margin-left: 10px;
     margin-bottom: 50px;
 }
 
-#copy-tilenames-icon {
+.copy-tile-icon{
     width: 1px;
     height: 1px;
     border: none;
@@ -993,37 +536,13 @@ input[type="color"]::-moz-color-swatch {
 
 #copy-traffos-icon {
     margin-left: 47px;
-    width: 1px;
-    height: 1px;
-    border: none;
-    font-size: 25px;
-    cursor: pointer;
-    z-index: 2001;
-    display: block;
-    fill: none;
-    outline: none;
-    box-shadow: none;
-    background: transparent;
-    padding: 0;
 }
 
 #copy-e7tiles-icon {
     margin-left: 90px;
-    width: 1px;
-    height: 1px;
-    border: none;
-    font-size: 25px;
-    cursor: pointer;
-    z-index: 2001;
-    display: block;
-    fill: none;
-    outline: none;
-    box-shadow: none;
-    background: transparent;
-    padding: 0;
 }
 
-#continent-container{
+.continent-container{
     margin-top: 10px;
     margin-left: 10px;
 }
@@ -1034,19 +553,7 @@ input[type="color"]::-moz-color-swatch {
     float: right;
 }
 
-#sampling-container{
-    margin-top: 10px;
-    margin-left: 10px;
-}
-
-#sampling{
-    text-align: right;
-    float: right;
-    width: 30%;
-    margin-right: 10px;
-}
-
-#tiling-id-container{
+.tiling-id-container{
     margin-top: 10px;
     margin-left: 10px;
 }
@@ -1058,7 +565,7 @@ input[type="color"]::-moz-color-swatch {
     margin-right: 10px;
 }
 
-#tilesize-container{
+.tilesize-container{
     margin-top: 10px;
     margin-left: 10px;
 }
@@ -1070,71 +577,23 @@ input[type="color"]::-moz-color-swatch {
     margin-right: 10px;
 }
 
-
-#x-other-container{
+.coord-container{
     margin-top: 10px;
     margin-left: 10px;
 }
 
-#xCoordOther{
+.coord{
     text-align: right;
     float: right;
     width: 80%;
     margin-right: 10px;
 }
 
-#y-other-container{
-    margin-top: 10px;
-    margin-left: 10px;
-}
-
-#yCoordOther{
-    text-align: right;
-    float: right;
-    width: 80%;
-    margin-right: 10px;
-}
-
-#crs-other-container{
-    margin-top: 10px;
-    margin-left: 10px;
-}
-
-#otherCRS{
-    text-align: right;
-    float: right;
-    width: 80%;
-    margin-right: 10px;
-}
-
-
-#x-e7-container{
-    margin-top: 10px;
-    margin-left: 10px;
-}
-
-#xCoordE7{
+.coord-e7{
     text-align: right;
     float: right;
     width: 65%;
     margin-right: 10px;
-}
-
-#y-e7-container{
-    margin-top: 10px;
-    margin-left: 10px;
-}
-
-#yCoordE7{
-    text-align: right;
-    float: right;
-    width: 65%;
-    margin-right: 10px;
-}
-
-#crs-e7-container{
-    margin-top: 10px;
-    margin-left: 10px;
 }
 
 #proj-continent-selection{
@@ -1142,18 +601,13 @@ input[type="color"]::-moz-color-swatch {
     float: right;
 }
 
-#reprojectCoord{
+#reproject-coord{
     margin-top: 20px;
     width: 100px;
     margin-left: 10px;
 }
 
-#map-coord-switch-container{
-    margin-top: 10px;
-    margin-left: 10px;
-}
-
-#proj-switch-container{
+.proj-switch-container{
     height: 50px;
     margin: auto;
     width: 30px;
@@ -1195,32 +649,30 @@ input[type="color"]::-moz-color-swatch {
   border-radius: 10px;
 }
 
-#label-tiles-switch-container{
+.label-tiles-switch-container{
     margin-top: 30px;
     margin-left: 10px;
 }
 
-
-#tileLabelCheckbox{
+.tile-label-checkbox{
     margin-left: 10px;
 }
-
 
 #sampling-switch-container{
     margin-left: 10px;
     margin-top: 20px;
 }
 
-#tilesTiling{
+#tiles-tiling{
     margin-left: 10px;
 }
 
+.tiles-grid-settings{
+    margin-left: 45px; 
+    margin-top: 20px;
+}
 
-#samplingInput{
-    /*margin-right: 5px;
-    
-    float: right;*/
+#sampling-input{
     text-align: right;
     width: 10%;
 }
-

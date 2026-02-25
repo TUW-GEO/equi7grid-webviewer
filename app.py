@@ -103,7 +103,7 @@ def reproject_to_equi7() -> Response:
     other_epsg = int(request.args["epsg"])
     
     proj_coord = ProjCoord(x=x, y=y, crs=pyproj.CRS.from_epsg(other_epsg))
-    e7ts = STD_E7.get_system_from_coord(proj_coord)
+    e7ts = STD_E7.get_systems_from_coord(proj_coord)[0]
     lon, lat = transform_coords(x, y, proj_coord.crs, 4326)
     e7_coord = e7ts.lonlat_to_xy(lon, lat)
 
@@ -177,7 +177,7 @@ def get_e7tile() -> Response:
     return jsonify(tile_def)
 
 
-@app.route("/UpdateSampling")
+@app.route("/updateSampling")
 def update_sampling() -> Response:
     """Update standard sampling and all grids."""
     global STD_SAMPLING

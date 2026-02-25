@@ -51,44 +51,6 @@ const zoneColours = {
   "SA": "#cc8fa1"
 }
 
-/*
-function changeProjection(epsgCode) {
-    const oldView = map.getView();
-    const oldProjection = oldView.getProjection();
-
-    if (!oldProjection) {
-        console.error("Old projection is null");
-        return;
-    }
-
-    const newProjection = ol.proj.get(epsgCode);
-
-    if (!newProjection) {
-        console.error("Unknown projection:", epsgCode);
-        return;
-    }
-
-    const oldCenter = oldView.getCenter();
-    const newCenter = ol.proj.transform(
-        oldCenter,
-        oldProjection,
-        newProjection
-    );
-
-    const newView = new ol.View({
-        projection: newProjection,
-        center: newCenter,
-        zoom: oldView.getZoom()
-    });
-
-    map.setView(newView);
-
-    // Refresh vector data
-    vectorLayer.getSource().clear();
-    vectorLayer.getSource().refresh();
-}
-    */
-
 
 const openfreemap = new ol.layer.Group()
 
@@ -101,14 +63,6 @@ let view = new ol.View({
     zoom: 5
 });
 
-/*
-const vectorLayer = new ol.layer.Vector({
-    source: new ol.source.Vector({
-        url: '/grid',
-        format: new ol.format.GeoJSON()
-    })
-});
-*/
 
 const olVectorStyle = new ol.style.Style({
   fill: new ol.style.Fill({
@@ -138,14 +92,11 @@ drawLayer.setStyle(
   })
 );
 
-//vectorLayer.setStyle(olVectorStyle);
-
 
 const map = new ol.Map({
     target: 'map',
     layers: [osmLayer],
     view: view
-    /*renderer: 'canvas'*/
 });
 
 map.addLayer(drawLayer);
@@ -525,217 +476,6 @@ async function createCesiumSourceNew(id, url, style, createDs) {
   
   return [polyPrimitive, outlinePrimitive, labelPrimitive]
 }
-  /*
-  const ds = await Cesium.GeoJsonDataSource.load(url, {
-    clampToGround: !url_is_zone,
-  });
-
-  const now = Cesium.JulianDate.now();
-
-  rgb = hexToRgb(style.fillColor);
-  rgba = [rgb.r, rgb.g, rgb.b, style.alpha];
-  const csFillColor = new Cesium.Color(rgba[0]/255., rgba[1]/255., rgba[2]/255., rgba[3]);
-
-  rgb = hexToRgb(style.strokeColor);
-  rgba = [rgb.r, rgb.g, rgb.b, style.alpha];
-  const csStrokeColor = new Cesium.Color(rgba[0]/255., rgba[1]/255., rgba[2]/255., rgba[3]);
-
-  ds.entities.values.forEach(entity => {
-    if (!entity.polygon) return;
-
-    // Fill
-    entity.polygon.material = csFillColor;
-    if (url_is_zone){
-      entity.polygon.outline = true;
-      entity.polygon.outlineColor = csStrokeColor;
-    }
-    else {
-      entity.polygon.classificationType =
-      Cesium.ClassificationType.TERRAIN;
-    }
-
-    // 🔥 OUTLINE AS POLYLINE (correct)
-    const hierarchy =
-      entity.polygon.hierarchy.getValue(now);
-
-    if (!hierarchy) return;
-
-    if(!url_is_zone){
-    ds.entities.add({
-      polyline: {
-        positions: hierarchy.positions,
-        width: style.strokeWidth,
-        material: csStrokeColor,
-        clampToGround: true,
-      }
-    });
-    }
-    
-    const name = entity.properties.name?.getValue();
-    if (!name) return;
-
-    entity.tilename = name;
-
-    const center =
-      Cesium.BoundingSphere.fromPoints(
-        hierarchy.positions
-      ).center;
-
-    // 🔤 ADD LABEL
-    entity.label = new Cesium.LabelGraphics({
-      text: name,
-      font: '14px ' + fontFamily,
-      fillColor: Cesium.Color.BLACK,
-      outlineColor: Cesium.Color.WHITE,
-      outlineWidth: 3,
-      style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-      heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
-      horizontalOrigin: Cesium.HorizontalOrigin.CENTER,
-      verticalOrigin: Cesium.VerticalOrigin.CENTER
-      //distanceDisplayCondition:
-      //  new Cesium.DistanceDisplayCondition(0, 100_000_000)
-    });
-
-    entity.position = center;
-    entity.label.show = false;
-
-  });
-
-  return ds;
-}
-
-/*
-async function loadGridCesium({ continent, sampling, tiling_id }) {
-  const url =
-    `/grid?continent=${continent}&sampling=${sampling}&tiling_id=${tiling_id}`;
-
-  const dataSources = ol3d.getDataSources();
-
-  // Remove previous datasource
-  if (cesiumGeoJsonSource) {
-    dataSources.remove(cesiumGeoJsonSource);
-    cesiumGeoJsonSource = null;
-  }
-
-  // Load GeoJSON directly into Cesium
-  cesiumGeoJsonSource = await Cesium.GeoJsonDataSource.load(url, {
-    clampToGround: true
-  });
-
-  // Styling
-  // Apply style + outline
-  const now = Cesium.JulianDate.now();
-
-  cesiumGeoJsonSource.entities.values.forEach(entity => {
-    if (!entity.polygon) return;
-
-    // Fill
-    entity.polygon.material =
-      Cesium.Color.BLUE.withAlpha(0.4);
-
-    entity.polygon.classificationType =
-      Cesium.ClassificationType.TERRAIN;
-
-    entity.polygon.outlineColor = Cesium.Color.GREEN
-    //entity.polygon
-
-    // 🔥 OUTLINE AS POLYLINE (correct)
-    const hierarchy =
-      entity.polygon.hierarchy.getValue(now);
-
-    if (!hierarchy) return;
-
-    cesiumGeoJsonSource.entities.add({
-      polyline: {
-        positions: hierarchy.positions,
-        width: 2,
-        material: Cesium.Color.BLACK,
-        clampToGround: true
-      }
-    });
-  });
-
-  dataSources.add(cesiumGeoJsonSource);
-  // Optional zoom
-  await ol3d.getCesiumScene().camera.flyTo({
-    destination: Cesium.BoundingSphere.fromPoints(
-      cesiumGeoJsonSource.entities.values
-        .filter(e => e.position)
-        .map(e => e.position.getValue(Cesium.JulianDate.now()))
-    ).center
-  });
-}
-
-ol3d.getOLMap().getLayers().forEach(layer => {
-  if (layer instanceof ol.layer.Vector) {
-    layer.setVisible(!is3D);
-  }
-});
-
-const source = vectorLayer.getSource();
-
-source.on('featuresloadstart', () => {
-  cesiumDataSource.entities.removeAll();
-});
-
-source.on('featuresloadend', () => {
-  if (!ol3d.getEnabled()) return;
-
-  source.getFeatures().forEach(addFeatureToCesium);
-});
-*/
-
-/*
-const source = vectorLayer.getSource();
-
-// Initial load
-source.getFeatures().forEach(addFeatureToCesium);
-
-// Add / update
-source.on('addfeature', e => addFeatureToCesium(e.feature));
-
-// Remove
-source.on('removefeature', e => {
-  cesiumDataSource.entities.removeById(e.feature.getId());
-});
-
-// Update geometry
-source.on('changefeature', e => {
-  cesiumDataSource.entities.removeById(e.feature.getId());
-  addFeatureToCesium(e.feature);
-});
-*/
-
-//const scene = ol3d.getCesiumScene();
-
-//const cesiumDataSource = new Cesium.CustomDataSource('dynamic-vectors');
-//ol3d.getDataSources().add(cesiumDataSource);
-
-
-/*
-document.getElementById('toggle-3d-icon').onclick = () => {
-  //ol3d.setEnabled(is3D);
-  is3D = !is3D;
-  ol3d.setEnabled(is3D);
-
-  document.getElementById('toggle-3d-icon').innerText = is3D ? '\uD83D\uDDFA\uFE0F' : '\uD83C\uDF0D';
-
-  map.getInteractions().forEach(i => i.setActive(!is3D));
-
-  if (!is3D){
-    source.getFeatures().forEach(feature => {
-    //source.removeFeature(feature);
-    cesiumDataSource.entities.removeById(feature.getId())
-    });
-  }
-  else {
-    source.getFeatures().forEach(feature => {
-    //source.removeFeature(feature);
-    addFeatureToCesium(feature);
-    });
-  }
-};
-*/
 
 function getRandomColor() {
   var letters = '0123456789ABCDEF';
@@ -877,11 +617,11 @@ map.getViewport().addEventListener('contextmenu', function (evt) {
       const lonlat = ol.proj.toLonLat(map.getEventCoordinate(evt));
 
       if (reprojMouse & toEqui7){
-        document.getElementById('xCoordOther').value = lonlat[0].toFixed(6);
-        document.getElementById('yCoordOther').value = lonlat[1].toFixed(6);
-        document.getElementById('otherCRS').value = 4326;
-        document.getElementById('xCoordE7').value = "";
-        document.getElementById('yCoordE7').value = "";
+        document.getElementById('x-coord-other').value = lonlat[0].toFixed(6);
+        document.getElementById('y-coord-other').value = lonlat[1].toFixed(6);
+        document.getElementById('other-crs').value = 4326;
+        document.getElementById('x-coord-e7').value = "";
+        document.getElementById('y-coord-e7').value = "";
       }
 
       navigator.clipboard.writeText(lonlat);
@@ -932,13 +672,13 @@ map.addInteraction(selectClick);
 map.on('pointermove', e => {
     lastPointerCoord = e.coordinate;
     const coord = ol.proj.toLonLat(e.coordinate);
-    document.getElementById('coords').innerHTML =
+    document.getElementById('pointer-coords').innerHTML =
         `<b>Lon:</b> ${coord[0].toFixed(4)}, <b>Lat:</b> ${coord[1].toFixed(4)}`;
 });
 
 
-const strokeSlider = document.getElementById('strokeWidthSlider');
-const strokeEmoji =document.getElementById('strokeEmoji');
+const strokeSlider = document.getElementById('stroke-width-slider');
+const strokeEmoji =document.getElementById('stroke-emoji');
 
 function updateStrokeEmoji() {
   const min = strokeSlider.min;
@@ -951,8 +691,8 @@ strokeSlider.addEventListener('input', updateStrokeEmoji);
 updateStrokeEmoji();
 
 
-const opacSlider = document.getElementById('opacSlider');
-const opacEmoji =document.getElementById('opacEmoji');
+const opacSlider = document.getElementById('opac-slider');
+const opacEmoji =document.getElementById('opac-emoji');
 
 function updateOpacEmoji() {
   const min = opacSlider.min;
@@ -964,35 +704,11 @@ function updateOpacEmoji() {
 opacSlider.addEventListener('input', updateOpacEmoji);
 updateOpacEmoji();
 
-/*
-document.getElementById('loadGrid').onclick = () => {
-    ol3d.setEnabled(false);
-    map.removeLayer(vectorLayer);
-    const continent = document.getElementById('continent').value;
-    const sampling = document.getElementById('sampling').value;
-    const tiling_id = document.getElementById('tiling_id').value;
-    if (!continent) return;
-    map.addLayer(vectorLayer);
-      const source = vectorLayer.getSource()
-      //source.getFeatures().forEach(feature => {
-      //cesiumDataSource.entities.removeById(feature.getId())
-    //});
-      console.log("test")
-      source.setUrl(`/grid?continent=${continent}&sampling=${sampling}&tiling_id=${tiling_id}`);
-      source.refresh();
-      //source.getFeatures().forEach(addFeatureToCesium);
-      if (is3D){
-      ol3d.setEnabled(true);
-      }
-    };
-*/
-
 function highlightSingleTile(tile){
     if(queryData){
       queryData.forEach(t => {
         const tileItem = document.getElementById(t);
-        tileItem.classList.add("tile-item");
-        tileItem.classList.remove("tile-item-active");
+        tileItem.classList.remove("active");
       });
     }
 
@@ -1028,8 +744,7 @@ function highlightSingleTile(tile){
 
 function highlightTile(tile){
     const tileItem = document.getElementById(tile);
-    tileItem.classList.remove("tile-item");
-    tileItem.classList.add("tile-item-active");
+    tileItem.classList.toggle("active");
 
     ds_id = ds_id_from_name(tile);
     const feature = layerRegistry[ds_id]["ol"].getSource().getFeatures().find(f => f.get('name') === tile);
@@ -1056,7 +771,7 @@ function highlightTile(tile){
 }
 
 document.getElementById('copy-tilenames-icon').onclick = () => {
-  const tileList = document.getElementById('tileList');
+  const tileList = document.getElementById('tile-list');
   const tilenames = [];
   for (const tileItem of tileList.childNodes){
       const tilename = tileItem.id;
@@ -1074,7 +789,7 @@ document.getElementById('copy-tilenames-icon').onclick = () => {
 }
 
 document.getElementById('copy-traffos-icon').onclick = async () => {
-  const tileList = document.getElementById('tileList');
+  const tileList = document.getElementById('tile-list');
   const traffos = {};
   for (const tileItem of tileList.childNodes){
       const tilename = tileItem.id;
@@ -1096,7 +811,7 @@ document.getElementById('copy-traffos-icon').onclick = async () => {
 }
 
 document.getElementById('copy-e7tiles-icon').onclick = async () => {
-  const tileList = document.getElementById('tileList');
+  const tileList = document.getElementById('tile-list');
   const e7tiles = {};
   for (const tileItem of tileList.childNodes){
       const tilename = tileItem.id;
@@ -1165,12 +880,12 @@ e7tile = Equi7Tile(**json_dict)
   });
 }
 
-document.getElementById('queryTiles').onclick = async () => {
-    const sampling = document.getElementById("samplingInput").value;
+document.getElementById('query-tiles').onclick = async () => {
+    const sampling = document.getElementById("sampling-input").value;
     if (sampling){
       if(sampling != stdSampling){
         await fetch(
-        `/UpdateSampling?sampling=${sampling}`
+        `/updateSampling?sampling=${sampling}`
       )
       stdSampling = sampling;
       }
@@ -1180,7 +895,7 @@ document.getElementById('queryTiles').onclick = async () => {
 
     updateStyles();
     if(!tileQueryOp){
-        const bboxWrapper = document.getElementById('bboxWrapper');
+        const bboxWrapper = document.getElementById('bbox-container');
         const bboxActive = bboxWrapper.style.display == "grid";
         if(bboxActive){
           tileQueryOp = "BBOX";
@@ -1192,7 +907,7 @@ document.getElementById('queryTiles').onclick = async () => {
     map.removeInteraction(drawInteraction);
     drawInteraction = null;
 
-    const tiling_id = document.getElementById("tilesTiling").value;
+    const tiling_id = document.getElementById("tiles-tiling").value;
     let res;
     if(tileQueryOp == "BBOX"){
       const east = document.getElementById('bbox_e').value
@@ -1212,13 +927,9 @@ document.getElementById('queryTiles').onclick = async () => {
     );
     }
     
-    //const sampling = document.getElementById('sampling').value;
-    //const tiling_id = activeGrid.split("_")[1];
-
-    
     const data = await res.json();
 
-    const list = document.getElementById('tileList');
+    const list = document.getElementById('tile-list');
     list.innerHTML = '';
 
     if(csHlPrimitive){
@@ -1264,8 +975,6 @@ document.getElementById('queryTiles').onclick = async () => {
 
     clearDrawings();
     tileQueryOp = null;
-
-    //document.getElementById('tileResults').innerText = `${data}`;
     };
 
 function createLabelStyle(feature, dsId) {
@@ -1329,6 +1038,7 @@ async function registerDataset(id, url) {
     styleRegistry[id] = {...defaultStyle};
   }
   const style = styleRegistry[id];
+  
   // 2D
   const olLayer = createOlVectorLayer(olURL, id);
   map.addLayer(olLayer);
@@ -1346,8 +1056,6 @@ async function registerDataset(id, url) {
   const csURL = url + "&env=cs"
   const isZone = !url.includes("tiling_id");
   const csPrimitives = await createCesiumSourceNew(id, csURL, style, !isZone);
-
-  //scene.globe.depthTestAgainstTerrain = false;
 
   layerRegistry[id] = {
     ol: olLayer,
@@ -1429,7 +1137,7 @@ async function initLayers(){
   endLoader();
 }
 
-async function loadGrid() {
+async function loadTiling() {
   
   const continent = document.getElementById('continent-selection').value;
   const tiling_id = document.getElementById('tiling-id').value;
@@ -1445,48 +1153,24 @@ async function loadGrid() {
     const tilingElem = document.createElement("option");
     tilingElem.value = tiling_id;
     tilingElem.innerText = tiling_id;
-    const selectContTiling = document.getElementById(`select${continent}Tiling`);
+    const selectContTiling = document.getElementById(`select-tiling-${continent.toLowerCase()}`);
     selectContTiling.appendChild(tilingElem);
   }
-
-  /*
-  Object.keys(layerRegistry).forEach(key => {
-    setLayerVisible(key, key == ds_id);
-  });
-  */
 }
 
 
-document.getElementById('loadGrid').onclick = async () =>  {
+document.getElementById('load-tiling').onclick = async () =>  {
   startLoader();
-  await loadGrid();
+  await loadTiling();
   endLoader();
-  /*
-  if (ol3d.getEnabled()) {
-    await loadGridCesium({ continent, sampling, tiling_id });
-    const source = vectorLayer.getSource();
-    source.setUrl(
-      `/grid?continent=${continent}&sampling=${sampling}&tiling_id=${tiling_id}`
-    );
-    source.refresh();
-  } else {
-    const source = vectorLayer.getSource();
-    source.setUrl(
-      `/grid?continent=${continent}&sampling=${sampling}&tiling_id=${tiling_id}`
-    );
-    source.refresh();
-
-    await loadGridCesium({ continent, sampling, tiling_id });
-  }
-    */
 };
 
 
-document.getElementById('reprojectCoord').onclick = async () => {
+document.getElementById('reproject-coord').onclick = async () => {
   if(toEqui7){
-    const x = document.getElementById('xCoordOther').value;
-    const y = document.getElementById('yCoordOther').value;
-    const other_epsg = document.getElementById('otherCRS').value;
+    const x = document.getElementById('x-coord-other').value;
+    const y = document.getElementById('y-coord-other').value;
+    const other_epsg = document.getElementById('other-crs').value;
 
     if (!x || !y || !other_epsg) return;
 
@@ -1495,15 +1179,15 @@ document.getElementById('reprojectCoord').onclick = async () => {
     );
     const data = await res.json();
 
-    document.getElementById('xCoordE7').value = data.x.toFixed(3);
-    document.getElementById('yCoordE7').value = data.y.toFixed(3);
+    document.getElementById('x-coord-e7').value = data.x.toFixed(3);
+    document.getElementById('y-coord-e7').value = data.y.toFixed(3);
     document.getElementById('proj-continent-selection').value = epsg_map[data.epsg];
   }
   else{
-    const x = document.getElementById('xCoordE7').value;
-    const y = document.getElementById('yCoordE7').value;
+    const x = document.getElementById('x-coord-e7').value;
+    const y = document.getElementById('y-coord-e7').value;
     const continent = document.getElementById('proj-continent-selection').value;
-    const other_epsg = document.getElementById('otherCRS').value;
+    const other_epsg = document.getElementById('other-crs').value;
 
     if (!x || !y || !continent) return;
 
@@ -1512,32 +1196,32 @@ document.getElementById('reprojectCoord').onclick = async () => {
     );
     const data = await res.json();
 
-    document.getElementById('xCoordOther').value = data.x.toFixed(3);
-    document.getElementById('yCoordOther').value = data.y.toFixed(3);
+    document.getElementById('x-coord-other').value = data.x.toFixed(3);
+    document.getElementById('y-coord-other').value = data.y.toFixed(3);
   }
 };
 
 const toggle3dIcon = document.getElementById('toggle-3d-icon');
 
-const appPanel = document.getElementById('app');
-const appIcon = document.getElementById('app-icon');
-const minimizeBtn = document.getElementById('minimizeApp');
+const appPanel = document.getElementById('settings-app');
+const appIcon = document.getElementById('settings-app-icon');
+const minimizeBtn = document.getElementById('minimize-settings-app');
 
 const projAppPanel = document.getElementById('proj-app');
 const projAppIcon = document.getElementById('proj-app-icon');
-const projMinimizeBtn = document.getElementById('minimizeProjApp');
+const projMinimizeBtn = document.getElementById('minimize-proj-app');
 
 const layerAppPanel = document.getElementById('layer-app');
 const layerAppIcon = document.getElementById('layer-app-icon');
-const layerMinimizeBtn = document.getElementById('minimizeLayerApp');
+const layerMinimizeBtn = document.getElementById('minimize-layer-app');
 
 const tileAppPanel = document.getElementById('tile-app');
 const tileAppIcon = document.getElementById('tile-app-icon');
-const tileMinimizeBtn = document.getElementById('minimizeTileApp');
+const tileMinimizeBtn = document.getElementById('minimize-tile-app');
 
 const tilingAppPanel = document.getElementById('tiling-app');
 const tilingAppIcon = document.getElementById('tiling-app-icon');
-const tilingMinimizeBtn = document.getElementById('minimizeTilingApp');
+const tilingMinimizeBtn = document.getElementById('minimize-tiling-app');
 
 
 const app_panels = {"app": appPanel, "proj": projAppPanel, "layer": layerAppPanel, "tile": tileAppPanel, "tiling": tilingAppPanel}
@@ -1639,9 +1323,9 @@ tilingAppIcon.onclick = () => {
 };
 
 
-const addTilingAF = document.getElementById("addTilingAF");
-const delTilingAF = document.getElementById("delTilingAF");
-const selectAFTiling = document.getElementById("selectAFTiling");
+const addTilingAF = document.getElementById("add-tiling-af");
+const delTilingAF = document.getElementById("del-tiling-af");
+const selectAFTiling = document.getElementById("select-tiling-af");
 addTilingAF.onclick = async () => {
   startLoader();
   await doAddDel("AF", selectAFTiling.value, false);
@@ -1651,9 +1335,9 @@ delTilingAF.onclick = async () => {
   await doAddDel("AF", selectAFTiling.value, true);
 }
 
-const addTilingAN = document.getElementById("addTilingAN");
-const delTilingAN = document.getElementById("delTilingAN");
-const selectANTiling = document.getElementById("selectANTiling");
+const addTilingAN = document.getElementById("add-tiling-an");
+const delTilingAN = document.getElementById("del-tiling-an");
+const selectANTiling = document.getElementById("select-tiling-an");
 addTilingAN.onclick = async () => {
   startLoader();
   await doAddDel("AN", selectANTiling.value, false);
@@ -1663,9 +1347,9 @@ delTilingAN.onclick = async () => {
   await doAddDel("AN", selectANTiling.value, true);
 }
 
-const addTilingAS = document.getElementById("addTilingAS");
-const delTilingAS = document.getElementById("delTilingAS");
-const selectASTiling = document.getElementById("selectASTiling");
+const addTilingAS = document.getElementById("add-tiling-as");
+const delTilingAS = document.getElementById("del-tiling-as");
+const selectASTiling = document.getElementById("select-tiling-as");
 addTilingAS.onclick = async () => {
   startLoader();
   await doAddDel("AS", selectASTiling.value, false);
@@ -1675,9 +1359,9 @@ delTilingAS.onclick = async () => {
   await doAddDel("AS", selectASTiling.value, true);
 }
 
-const addTilingEU = document.getElementById("addTilingEU");
-const delTilingEU = document.getElementById("delTilingEU");
-const selectEUTiling = document.getElementById("selectEUTiling");
+const addTilingEU = document.getElementById("add-tiling-eu");
+const delTilingEU = document.getElementById("del-tiling-eu");
+const selectEUTiling = document.getElementById("select-tiling-eu");
 addTilingEU.onclick = async () => {
   startLoader();
   await doAddDel("EU", selectEUTiling.value, false);
@@ -1687,9 +1371,9 @@ delTilingEU.onclick = async () => {
   await doAddDel("EU", selectEUTiling.value, true);
 }
 
-const addTilingNA = document.getElementById("addTilingNA");
-const delTilingNA = document.getElementById("delTilingNA");
-const selectNATiling = document.getElementById("selectNATiling");
+const addTilingNA = document.getElementById("add-tiling-na");
+const delTilingNA = document.getElementById("del-tiling-na");
+const selectNATiling = document.getElementById("select-tiling-na");
 addTilingNA.onclick = async () => {
   startLoader();
   await doAddDel("NA", selectNATiling.value, false);
@@ -1699,9 +1383,9 @@ delTilingNA.onclick = async () => {
   await doAddDel("NA", selectNATiling.value, true);
 }
 
-const addTilingOC = document.getElementById("addTilingOC");
-const delTilingOC = document.getElementById("delTilingOC");
-const selectOCTiling = document.getElementById("selectOCTiling");
+const addTilingOC = document.getElementById("add-tiling-oc");
+const delTilingOC = document.getElementById("del-tiling-oc");
+const selectOCTiling = document.getElementById("select-tiling-oc");
 addTilingOC.onclick = async () => {
   startLoader();
   await doAddDel("OC", selectOCTiling.value, false);
@@ -1711,9 +1395,9 @@ delTilingOC.onclick = async () => {
   await doAddDel("OC", selectOCTiling.value, true);
 }
 
-const addTilingSA = document.getElementById("addTilingSA");
-const delTilingSA = document.getElementById("delTilingSA");
-const selectSATiling = document.getElementById("selectSATiling");
+const addTilingSA = document.getElementById("add-tiling-sa");
+const delTilingSA = document.getElementById("del-tiling-sa");
+const selectSATiling = document.getElementById("select-tiling-sa");
 addTilingSA.onclick = async () => {
   startLoader();
   await doAddDel("SA", selectSATiling.value, false);
@@ -1723,61 +1407,8 @@ delTilingSA.onclick = async () => {
   await doAddDel("SA", selectSATiling.value, true);
 }
 
-/*
-const selectAFTiling = document.getElementById("selectAFTiling");
-selectAFTiling.onclick = async (e) => {
-  if(e.target.tagName == "OPTION"){
-    await doAddDel("AF", e.target.value);
-  }
-}
-
-const selectANTiling = document.getElementById("selectANTiling");
-selectANTiling.onclick = async (e) => {
-  if(e.target.tagName == "OPTION"){
-    await doAddDel("AN", e.target.value);
-  }
-}
-
-const selectASTiling = document.getElementById("selectASTiling");
-selectASTiling.onclick = async (e) => {
-  if(e.target.tagName == "OPTION"){
-    await doAddDel("AS", e.target.value);
-  }
-}
-
-const selectEUTiling = document.getElementById("selectEUTiling");
-selectEUTiling.onclick = async (e) => {
-  console.log(e)
-    if(e.target.tagName == "OPTION"){
-      console.log("HELLO")
-      await doAddDel("EU", e.target.value);
-    }
-}
-
-const selectNATiling = document.getElementById("selectNATiling");
-selectNATiling.onclick = async (e) => {
-  if(e.target.tagName == "OPTION"){
-    await doAddDel("NA", e.target.value);
-  }
-}
-
-const selectOCTiling = document.getElementById("selectOCTiling");
-selectOCTiling.onclick = async (e) => {
-  if(e.target.tagName == "OPTION"){
-    await doAddDel("OC", e.target.value);
-  }
-}
-
-const selectSATiling = document.getElementById("selectSATiling");
-selectSATiling.onclick = async (e) => {
-  if(e.target.tagName == "OPTION"){
-    await doAddDel("SA", e.target.value);
-  }
-}*/
-
-
-const bboxBtn = document.getElementById('bboxBtn');
-const bboxWrapper = document.getElementById('bboxWrapper');
+const bboxBtn = document.getElementById('bbox-button');
+const bboxWrapper = document.getElementById('bbox-container');
 bboxBtn.onclick = () => {
     tileQueryOp = "BBOX";
     if(bboxWrapper.style.display == "grid"){
@@ -1789,14 +1420,14 @@ bboxBtn.onclick = () => {
     
 };
 
-const bboxDrawBtn = document.getElementById('bboxDrawBtn');
+const bboxDrawBtn = document.getElementById('bbox-draw-button');
 bboxDrawBtn.onclick = () => {
     clearDrawings();
     tileQueryOp = "BBOX-DRAW";    
     drawBoundingBox();
 };
 
-const polyDrawBtn = document.getElementById('polyDrawBtn');
+const polyDrawBtn = document.getElementById('poly-draw-button');
 polyDrawBtn.onclick = () => {
     clearDrawings();
     tileQueryOp = "POLY-DRAW";
@@ -1857,14 +1488,14 @@ function moveCesiumCredits() {
 
 
 
-document.getElementById('strokeWidthSlider').oninput = (e) => {
+document.getElementById('stroke-width-slider').oninput = (e) => {
     Object.keys(styleRegistry).forEach(dsId => {
       styleRegistry[dsId].strokeWidth = e.target.value;
       updateStyle(dsId);
     });
 };
 
-document.getElementById('opacSlider').oninput = (e) => {
+document.getElementById('opac-slider').oninput = (e) => {
     Object.keys(styleRegistry).forEach(dsId => {
       styleRegistry[dsId].alpha = e.target.value/100.;
       updateStyle(dsId);
@@ -1905,22 +1536,6 @@ function collapse(continent){
   }
  
 }
-/*
-function changeAddDel(continent){
-  const delText = "\uD83D\uDEAE";
-  const addText = "\u2795";
-  const liTiling = document.getElementById(continent);
-  const innerText = liTiling.children[0].children[4].innerText
-
-  if (innerText == addText){
-    liTiling.children[0].children[4].innerText = delText;
-  }
-  else {
-    liTiling.children[0].children[4].innerText = addText;
-  }
-}
-*/
-
 
 
 async function doAddDelPerTiling(continent, tilingId, remove){
@@ -1942,7 +1557,7 @@ async function doAddDelPerTiling(continent, tilingId, remove){
 
       
       if(!tilingIds.includes(tilingId)){
-      const selectContTiling = document.getElementById(`select${continent}Tiling`);
+      const selectContTiling = document.getElementById(`select-tiling-${continent.toLowerCase()}`);
       let childToRemove = null;
       let children = selectContTiling.children;
       for (var i = 0; i < children.length; i++) {
@@ -1975,10 +1590,6 @@ async function doAddDel(continent, tilingIdSel, remove){
 
 
 function renderLayerSwitcher() {
-  /*
-  const list = document.getElementById('continentList');
-  list.innerHTML = '';
-  */
   const dsIds = Object.keys(layerRegistry)
   const tilingIdsContMap = {}
   for(const continent of continents){
@@ -1994,16 +1605,9 @@ function renderLayerSwitcher() {
   for(const continent of continents){
     tilingIdsContMap[continent].sort()
   }
-  /*
-  dsIds.forEach(dsId => {
-    const tilingId = dsId.split("_")[1];
-    if((tilingId != "ZONE") & (!tilingIds.includes(tilingId))){
-      tilingIds.push(tilingId)
-    }
-  }) 
-  */
+
   for(const continent of Object.keys(tilingIdsContMap)){
-    const continentLi = document.getElementById(continent);
+    const continentLi = document.getElementById(continent.toLowerCase());
     const continentId = continent + "Ul";
     let tilingList = document.getElementById(continentId);
     if(tilingList == null){
@@ -2011,7 +1615,7 @@ function renderLayerSwitcher() {
     } 
     tilingList.innerHTML = "";
     tilingList.id = continentId;
-    tilingList.className = "tilingList";
+    tilingList.className = "tiling-list";
     for(const tilingId of tilingIdsContMap[continent]){
       const dsId = continent + "_" + tilingId
       const li = document.createElement('li');
@@ -2039,18 +1643,17 @@ function renderLayerSwitcher() {
       li.querySelector('input').onchange = e => {
         setLayerVisible(dsId, e.target.checked);
       };
-      // style="float: right; margin-right: 10px;"
       tilingList.appendChild(li);
       
     }
     enableDragAndDrop(tilingList, '.tiling-item');
     continentLi.appendChild(tilingList);
   }
-  const continentList = document.getElementById('continentList');
+  const continentList = document.getElementById('continent-list');
   enableDragAndDropOuter(continentList, '.continent-item', '.tiling-item');
 
 
-  const tilesTilingSelect = document.getElementById("tilesTiling")
+  const tilesTilingSelect = document.getElementById("tiles-tiling")
   tilesTilingSelect.innerHTML = "";
   for (const tilingId of tilingIds){
     if(tilingId == "ZONE"){
@@ -2061,84 +1664,6 @@ function renderLayerSwitcher() {
     opt.innerText = tilingId;
     tilesTilingSelect.appendChild(opt)
   }
-  /*
-  for(const tilingId of tilingIds){
-    
-    const liTiling = document.createElement('li');
-    liTiling.className = 'continent-item';
-    liTiling.draggable = true;
-    liTiling.id = tilingId;
-    liTiling.innerHTML = `<div onclick="collapse('${tilingId}')" style="margin-bottom: 10px; padding-left: 10px;"><span class="toggleTiling">\u2796</span>
-      <span class="label">${tilingId}</span></div>`; //
-
-    
-    const continentList = document.createElement('ul');
-    continentList.innerHTML = "";
-    continentList.id = "tilingList";
-    for(const continent of continents){
-      const dsId = continent + "_" + tilingId
-      if(dsIds.includes(dsId)){
-        const li = document.createElement('li');
-        li.className = 'tiling-item';
-        li.draggable = true;
-        li.dataset.layerId = dsId;
-
-        li.innerHTML = `
-        <input type="checkbox"></input>
-        ${continent}
-        <span style="float: right; margin-right: 10px;">
-        Fill:
-        <input type="color" oninput="updateFillColor('${dsId}', this.value);"></input>
-        Stroke:
-        <input type="color" oninput="updateStrokeColor('${dsId}', this.value);"></input>
-        </span>
-        `;
-
-        li.querySelector('input').onchange = e => {
-          setLayerVisible(dsId, e.target.checked);
-        };
-        // style="float: right; margin-right: 10px;"
-        continentList.appendChild(li);
-      }
-    }
-    enableDragAndDrop(continentList, '.tiling-item');
-    liTiling.appendChild(continentList);
-    list.appendChild(liTiling);
-  }
-    */
-
-  /*
-  Object.entries(layerRegistry).forEach(([id, layer]) => {
-    if (!id.includes("ZONE")){
-      activeGrid = id;
-      const continent = id.split("_")[0]
-      const tilingId = id.split("_")[1]
-      const li = document.createElement('li');
-      li.className = 'layer-item';
-      li.draggable = true;
-      li.dataset.layerId = id;
-
-      li.innerHTML = `
-      <input type="checkbox"></input>
-      Fill:
-      <input type="color" oninput="updateFillColor('${id}', this.value);"></input>
-      Stroke:
-      <input type="color" oninput="updateStrokeColor('${id}', this.value);"></input>
-      <span>${id}</span>
-      `;
-      //
-      //  
-      // 
-      // Visibility toggle
-      li.querySelector('input').onchange = e => {
-        setLayerVisible(id, e.target.checked);
-      };
-
-      list.appendChild(li);
-      }
-    });
-    */
-  //enableDragAndDrop(list);
 }
 
 
@@ -2263,9 +1788,6 @@ function updateStyle(ds_id){
   }
   const style = styleRegistry[ds_id];
 
-  //console.log(ds_id);
-  //console.log(style);
-
   layerRegistry[ds_id]["ol"].setStyle(feature => createLabelStyle(feature, ds_id));
   if(queryData){
     queryData.forEach(tile => {
@@ -2310,26 +1832,6 @@ function updateStyle(ds_id){
 
   csPrimitives[0].appearance.material = csFillMaterial;
   csPrimitives[1].appearance.material = csStrokeMaterial;
-  /*
-  const attributes = csPrimitives[0].getGeometryInstanceAttributes("EU500M_E048N012T6");
-  attributes.color = csFillColor;
-  attributes.show = Cesium.ShowGeometryInstanceAttribute.toValue(true);
-  */
-  /*
-  csPrimitives[1].geometry.width = style.strokeWidth;
-  csPrimitives[1].attributes.color = csStrokeColor;
-  */
-  /*
-  ds.entities.values.forEach(entity => {
-    if (entity.polygon){
-      entity.polygon.material = csFillColor;
-    }
-    else if(entity.polyline){
-      entity.polyline.material = csStrokeColor;
-      entity.polyline.width = style.strokeWidth;
-    }
-  });
-  */
 }
 
 function updateFillColor(ds_id, fillColor){
@@ -2353,10 +1855,10 @@ function updateStrokeColor(ds_id, strokeColor){
 function setReprojMouse(flag){
   reprojMouse = flag;
   if (reprojMouse){
-    document.getElementById('otherCRS').disabled = true
+    document.getElementById('other-crs').disabled = true
   }
   else{
-    document.getElementById('otherCRS').disabled = false
+    document.getElementById('other-crs').disabled = false
   }
 }
 
@@ -2364,99 +1866,21 @@ document.getElementById('proj-switch-icon').onclick = () => {
   if(toEqui7){
     document.getElementById('proj-switch-icon').innerText = "\u2B06\uFE0F";
     toEqui7 = false;
-    document.getElementById('xCoordOther').value = "";
-    document.getElementById('yCoordOther').value = "";
+    document.getElementById('x-coord-other').value = "";
+    document.getElementById('y-coord-other').value = "";
     if(!reprojMouse){
-      document.getElementById('otherCRS').value = "";
+      document.getElementById('other-crs').value = "";
     }
     document.getElementById('proj-continent-selection').disabled = false;
   }
   else{
     document.getElementById('proj-switch-icon').innerText = "\u2B07\uFE0F";
     toEqui7 = true;
-    document.getElementById('xCoordE7').value = "";
-    document.getElementById('yCoordE7').value = "";
+    document.getElementById('x-coord-e7').value = "";
+    document.getElementById('y-coord-e7').value = "";
     document.getElementById('proj-continent-selection').disabled = true;
   }
 }
-
-/*
-document.getElementById("tiling-fillcolor").oninput = () => {
-  const fill_color = document.getElementById("tiling-fillcolor").value
-  const newStyle = new ol.style.Style({
-    fill: new ol.style.Fill({
-      color: fill_color
-    }),
-    stroke: new ol.style.Stroke({
-      color: 'rgba(0,0,0,1)',
-      width: 2
-    })
-  });
-};
-*/
-
-/*
-const scene = ol3d.getCesiumScene();
-scene.screenSpaceCameraController.enableZoom = true;
-scene.screenSpaceCameraController.enableRotate = true;
-scene.screenSpaceCameraController.enableTilt = true;
-scene.screenSpaceCameraController.enableTranslate = true;
-scene.screenSpaceCameraController.enableZoom = true;
-scene.screenSpaceCameraController.zoomEventTypes = [
-Cesium.CameraEventType.WHEEL,
-Cesium.CameraEventType.PINCH
-];
-
-const camera = scene.camera;
-
-
-map.once('postrender', () => {
-  ol3d.setEnabled(false);
-  ol3d.setEnabled(true);
-  map.getInteractions().forEach(i => i.setActive(false));
-
-document.addEventListener('DOMContentLoaded', () => {
-  const camera = ol3d.getCesiumScene().camera;
-
-  document.getElementById('zoom-in').onclick = () => {
-    camera.zoomIn(camera.positionCartographic.height * 0.2);
-  };
-
-  document.getElementById('zoom-out').onclick = () => {
-    camera.zoomOut(camera.positionCartographic.height * 0.2);
-  };
-});
-});
-
-const handler = new Cesium.ScreenSpaceEventHandler(scene.canvas);
-
-handler.setInputAction((movement) => {
-  if (!ol3d.getEnabled()) return;
-
-  const picked = scene.pick(movement.position);
-  if (!picked || !picked.id) return;
-
-  // ol-cesium attaches the OL feature here
-  const olFeature = picked.id.olFeature;
-  if (!olFeature) return;
-
-  const props = olFeature.getProperties();
-  popup.innerHTML = `<b>${props.name}</b>`;
-
-  // Convert Cesium cartesian → OL coordinate
-  const cartesian = scene.pickPosition(movement.position);
-  if (!cartesian) return;
-
-  const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
-  const coordinate = ol.proj.fromLonLat([
-    Cesium.Math.toDegrees(cartographic.longitude),
-    Cesium.Math.toDegrees(cartographic.latitude)
-  ]);
-
-  overlay.setPosition(coordinate);
-
-}, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-*/
 
 async function init3d(){
   await create3d();

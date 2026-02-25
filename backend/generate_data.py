@@ -1,18 +1,19 @@
-import geopandas as gpd
-from pathlib import Path
 import shapely
-from equi7grid import get_standard_equi7grid
+import geopandas as gpd
+
+from pathlib import Path
 from antimeridian import fix_polygon
 from shapely.geometry.polygon import orient
 from geopandas import GeoDataFrame
+from equi7grid import get_standard_equi7grid, Equi7Grid
 
-MAX_SEG_LEN = 20_000
+MAX_SEG_LEN = 20_000 # maximum segment length in meters for geometries displayed in the Web-Mercator projection
 
-def limit_geog_poly(geom: shapely.Geometry) -> shapely.Geometry:
-    limits_poly = shapely.Polygon([(-179.9, -84), (179.9, -84), (179.9, 84), (-179.9, 84)])
-    return shapely.intersection(geom, limits_poly)
-
-def generate_gdf(e7grid, continent, tiling_id, max_seg_len=None) -> gpd.GeoDataFrame:
+def generate_gdf(e7grid: Equi7Grid, continent: str, tiling_id: str | int, 
+                 max_seg_len: int | None = None) -> gpd.GeoDataFrame:
+    """Generate GeoDataframe in the LatLon projection containing all Equi7Grid tiles corresponding
+    to the given continent and tiling ID.
+    """
     gdf = e7grid[continent].to_geodataframe(tiling_ids = [tiling_id])
     if max_seg_len is not None:
         for i, row in gdf.iterrows():
@@ -34,6 +35,10 @@ def generate_gdf(e7grid, continent, tiling_id, max_seg_len=None) -> gpd.GeoDataF
 
 
 def generate_grids():
+    """Generate GeoDataframe in the LatLon projection containing all standard Equi7Grid tiles. 
+    The function fills the data folder of the project repository and performs segmentation for 
+    2D data, but not 3D.
+    """
     continents = ["AF", "AN", "AS", "EU", "NA", "OC", "SA"]
     tilings = ["T6", "T3", "T1"]
     for tiling in tilings:
