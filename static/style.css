@@ -628,29 +628,34 @@ input[type="color"]::-moz-color-swatch {
     margin-top: 7px;
 }
 
-.slider-wrap {
-  position: relative;
-  margin-left: 1px;
-  margin-top: 20px;
-  width: 275px;
-}
-
-.slider-wrap input {
-  width: 100%;
+.slider-wrap{
+    margin-left: 10px;
+    margin-top: 20px;
 }
 
 .slider-emoji {
   font-size: 20px;
-  position: absolute;
-  top: -5px;
+  width: 30px;
+  height: 30px;
   pointer-events: none;
-  transform: translateX(-50%);
   background: #dddcdc;
   border-radius: 10px;
+  text-align: center;
+  display: inline-block;
+}
+
+#stroke-width-slider{
+    display: inline-block;
+    width: 83%;
+}
+
+#opac-slider{
+    display: inline-block;
+    width: 83%;
 }
 
 .label-tiles-switch-container{
-    margin-top: 30px;
+    margin-top: 20px;
     margin-left: 10px;
 }
 

@@ -1109,18 +1109,8 @@ function hexToRgb(hex) {
 // ------------
 // update stroke settings and style
 const strokeSlider = document.getElementById('stroke-width-slider');
-const strokeEmoji = document.getElementById('stroke-emoji');
-
-function updateStrokeEmoji() {
-  const min = strokeSlider.min;
-  const max = strokeSlider.max;
-  const percent = (strokeSlider.value - min) / (max - min);
-  strokeEmoji.style.left = percent * 100 + '%';
-}
-updateStrokeEmoji();
 
 strokeSlider.oninput = (e) => {
-    updateStrokeEmoji();
     Object.keys(styleRegistry).forEach(dsId => {
       styleRegistry[dsId].strokeWidth = e.target.value;
       updateStyle(dsId);
@@ -1129,18 +1119,8 @@ strokeSlider.oninput = (e) => {
 
 // update opacity settings and style
 const opacSlider = document.getElementById('opac-slider');
-const opacEmoji =document.getElementById('opac-emoji');
-
-function updateOpacEmoji() {
-  const min = opacSlider.min;
-  const max = opacSlider.max;
-  const percent = (opacSlider.value - min) / (max - min);
-  opacEmoji.style.left = percent * 100 + '%';
-}
-updateOpacEmoji();
 
 opacSlider.oninput = (e) => {
-    updateOpacEmoji();
     Object.keys(styleRegistry).forEach(dsId => {
       styleRegistry[dsId].alpha = e.target.value/100.;
       updateStyle(dsId);
