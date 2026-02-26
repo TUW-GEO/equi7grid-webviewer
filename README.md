@@ -2,19 +2,12 @@
 
 Webviewer for Equi7Grid zone, tiling system, and tile display and interaction.
 
-## Installation
-
-This package can be installed via pip:
-
-```bash
-pip install equi7grid-webviewer
-```
-
 ## Deployment
 
-### Setup
+### Development 
 
-First, install `uv`:
+For developing or testing the webviewer, we recommend that you clone the repo and 
+deploy it locally on your machine. First, install `uv`:
 
 ```bash
 wget -qO- https://astral.sh/uv/install.sh | sh
@@ -32,11 +25,23 @@ Finally, you can add all required and optional dependencies to it:
 uv pip install -r pyproject.toml
 ```
 
-### Operation
+To start the webviewer, you need to execute the following command:
 
 ```bash
 python app.py
 ```
+
+### Operations [TODO]
+
+For deploying the webviewer in an operational manner, we recommend to use the tagged docker images.
+
+To start the webviewer with the tag `0.1.0`, you need to execute the following command:
+
+```bash
+docker run -p 5000:5000 equi7grid-webviewer:0.1.0
+```
+
+Note that the docker port 5000 is mapped to the host port 5000 and needs to be modified according to the operational setup.
 
 ## Contribute
 
