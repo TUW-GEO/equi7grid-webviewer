@@ -59,7 +59,7 @@ html, body {
 
 .cesium-zoom {
     position: absolute;
-    top: 1.4em;
+    top: 4.4em;
     right: 1.4em;
     z-index: 3000;
     background-color: (128, 128, 128, 0.25);

@@ -220,7 +220,7 @@ def main():
     args = parser.parse_args()
 
     if args.docker:
-        app.run(host="172.17.0.2", port=5000, debug=True)
+        app.run(host="0.0.0.0", port=5000, debug=True)
     else:
         app.run(debug=True)
 
