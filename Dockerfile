@@ -27,7 +27,6 @@ RUN uv venv --python 3.12
 RUN --mount=type=bind,source=pyproject.toml,target=pyproject.toml \ 
     uv pip install -r pyproject.toml --all-extras
 
-
 # Copy local project
 COPY . /app
 
@@ -39,6 +38,9 @@ ENTRYPOINT []
 
 # Use the non-root user to run the application
 USER nonroot
+
+# Label docker container to point to the GitHub repo
+LABEL org.opencontainers.image.source=https://github.com/tuw-geo/equi7grid-webviewer
 
 # Launch Flask application to start the webviewer
 CMD ["uv", "run", "--no-project", "python", "app.py", "--docker"]
