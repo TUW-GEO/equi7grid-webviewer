@@ -1519,7 +1519,7 @@ bboxBtn.onclick = () => {
 function collapse(continent){
   const plusText = "\u2795";
   const minusText = "\u2796";
-  const liTiling = document.getElementById(continent);
+  const liTiling = document.getElementById(continent.toLowerCase());
   liTiling.classList.toggle('collapsed');
   const innerText = liTiling.children[0].children[0].innerText
   if (innerText == plusText){
