@@ -31,11 +31,16 @@ To start the webviewer, you need to execute the following command:
 python app.py
 ```
 
-### Operations [TODO]
+### Operations
 
 For deploying the webviewer in an operational manner, we recommend to use the tagged docker images.
+In this example we pull the tag `0.1.0` from the TUW-GEO package registry:
 
-To start the webviewer with the tag `0.1.0`, you need to execute the following command:
+```bash
+docker pull ghcr.io/tuw-geo/equi7grid-webviewer:0.1.0
+```
+
+To start the webviewer, you need to execute the following command:
 
 ```bash
 docker run -p 5000:5000 equi7grid-webviewer:0.1.0
