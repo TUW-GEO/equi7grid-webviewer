@@ -4,6 +4,9 @@ Webviewer for Equi7Grid zone, tiling system, and tile display and interaction.
 
 ## Deployment
 
+The following two sections describe the setup of the webviewer for developers as well as for operational deployment via docker.
+Please note that when running the webviewer for the first time, tile data is generated and stored locally, which can take a few minutes.
+
 ### Development 
 
 For developing or testing the webviewer, we recommend that you clone the repo and 
