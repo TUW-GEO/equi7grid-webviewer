@@ -10,6 +10,7 @@ let toEqui7 = true;
 let queryData = null;
 let tileQueryOp = null;
 let drawInteraction = null;
+let selectClick = null;
 let lastPointerCoord = null;
 let stdSampling = 500;
 
@@ -110,8 +111,8 @@ function create2dPointerMove(){
 }
 
 function create2dSelectClick(){
-  const selectClick = new ol.interaction.Select({
-  condition: ol.events.click,
+  selectClick = new ol.interaction.Select({
+    condition: ol.events.click,
     style: selectStyle
   });
   map.addInteraction(selectClick);
@@ -131,10 +132,13 @@ function create2dLeftClick(){
       if (ol3d.getEnabled()) return;
     }
     if (drawInteraction) return;
+
+    popup.style.display = "None";
     
     map.forEachFeatureAtPixel(evt.pixel, function (feature) {
         const props = feature.getProperties();
         popup.innerHTML = props.name;
+        popup.style.display = "block";
         overlay.setPosition(evt.coordinate);
     });
   });
@@ -232,6 +236,12 @@ function create2d(){
 // ----------------
 // 2D map functions
 // ----------------
+function destroyOlHl(){
+  if(selectClick){
+    selectClick.getFeatures().clear();
+  }
+}
+
 function drawPolygon(){
   if (drawInteraction){
     map.removeInteraction(drawInteraction);
@@ -309,11 +319,8 @@ async function create3d(){
     handler.setInputAction(movement => {
       if (!ol3d.getEnabled()) return;
 
-      if(csHlPrimitive){
-        scene.primitives.remove(csHlPrimitive);
-        csHlPrimitive.destroy();
-      }
-
+      destroyCsHl();
+      
       const picked = scene.pick(movement.position);
       if (!picked || !picked.id) return;
 
@@ -355,6 +362,7 @@ async function create3d(){
           Cesium.BoundingSphere.fromPoints(positions
           ).center
         popup.innerHTML = picked.id
+        popup.style.display = "block";
         const cntrCoord = convertCsToOlCoordinate(center);
         overlay.setPosition(cntrCoord);
       }
@@ -500,6 +508,15 @@ function createCsLabels(geojson){
 // ----------------
 // 3D map functions
 // ----------------  
+
+function destroyCsHl(){
+  if(csHlPrimitive){
+    scene.primitives.remove(csHlPrimitive);
+    csHlPrimitive.destroy();
+  }
+  popup.style.display = "None";
+}
+
 async function addZones3d(dsId){
   const layer = layerRegistry[dsId];
   const style = styleRegistry[dsId];
@@ -620,7 +637,9 @@ async function set3D(enabled) {
   });
 
   applyLayerOrder(".tiling-item");
-
+  destroyCsHl();
+  destroyOlHl();
+    
   map.getInteractions().forEach(i =>
     i.setActive(!enabled)
   );
@@ -899,6 +918,7 @@ async function initLayers(){
   startLoader();
   await init_zones();
   await init_standard_grids();
+  applyLayerOrder(".tiling-item");
   endLoader();
 }
 
@@ -979,7 +999,7 @@ async function doAddDel(continent, tilingId, remove){
 
 function applyLayerOrder(itemName) {
   const dsIds = [...document.querySelectorAll(itemName)]
-    .map(li => li.dataset.layerId);
+    .map(li => li.dataset.layerId).reverse();
 
   const layers = map.getLayers();
   dsIds.forEach((dsId, index) => {
@@ -1003,9 +1023,7 @@ function applyLayerOrder(itemName) {
 // update layer styles
 function updateFillColor(dsId, fillColor){
   styleRegistry[dsId].fillColor = fillColor;
-  console.log(styleRegistry);
   updateStyle(dsId);
-  console.log(styleRegistry);
 }
 
 function updateStrokeWidth(dsId, strokeWidth){
@@ -1566,12 +1584,17 @@ function renderLayerSwitcher() {
       li.draggable = true;
       li.dataset.layerId = dsId;
 
+      let checkedStr = "";
+      if(layerRegistry[dsId].visible){
+        checkedStr = "checked";
+      }
+
       if(tilingId == "ZONE"){
-        li.innerHTML = `<input type="checkbox"></input> ${tilingId}`
+        li.innerHTML = `<input type="checkbox" ${checkedStr}></input> ${tilingId}`
       }
       else{
         li.innerHTML = `
-      <input type="checkbox"></input>
+      <input type="checkbox" ${checkedStr}></input>
       ${tilingId}
       <span style="float: right; margin-right: 10px;">
       Fill:
