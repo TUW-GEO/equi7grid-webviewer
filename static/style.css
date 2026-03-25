@@ -258,8 +258,8 @@ html, body {
 
 #toggle-3d-icon {
     position: absolute;
-    bottom: 70px;
-    left: 15px;
+    top: 125px;
+    right: 70px;
     width: 0px;
     height: 0px;
     border: none;
@@ -680,4 +680,22 @@ input[type="color"]::-moz-color-swatch {
 #sampling-input{
     text-align: right;
     width: 10%;
+}
+
+
+.coord-copy-icon {
+    margin-left: 5px;
+    margin-top: 5px;
+    width: 1px;
+    height: 1px;
+    border: none;
+    font-size: 25px;
+    cursor: pointer;
+    z-index: 2001;
+    display: inline-block;
+    fill: none;
+    outline: none;
+    box-shadow: none;
+    background: transparent;
+    padding: 0;
 }

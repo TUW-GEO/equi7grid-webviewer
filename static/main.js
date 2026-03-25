@@ -127,20 +127,44 @@ function create2dPopup(){
 }
 
 function create2dLeftClick(){
-  map.on('click', function (evt) {
+  map.on('click', async function (evt) {
     if(!disable3d){
       if (ol3d.getEnabled()) return;
     }
     if (drawInteraction) return;
 
     popup.style.display = "None";
-    
-    map.forEachFeatureAtPixel(evt.pixel, function (feature) {
-        const props = feature.getProperties();
-        popup.innerHTML = props.name;
-        popup.style.display = "block";
-        overlay.setPosition(evt.coordinate);
-    });
+
+    const projApp = document.getElementById("proj-app");
+    const projAppActive = projApp.classList.value.includes("visible");
+    if(reprojMouse & projAppActive){
+      const lonlat = ol.proj.toLonLat(evt.coordinate);
+      document.getElementById('x-coord-other').value = lonlat[0].toFixed(6);
+      document.getElementById('y-coord-other').value = lonlat[1].toFixed(6);
+      document.getElementById('other-crs').value = 4326;
+
+      const res = await fetch(
+          `/reprojectToEqui7?x=${lonlat[0]}&y=${lonlat[1]}&epsg=${4326}`
+      );
+      const data = await res.json();
+
+      document.getElementById('x-coord-e7').value = data.x.toFixed(3);
+      document.getElementById('y-coord-e7').value = data.y.toFixed(3);
+      document.getElementById('proj-continent-selection').value = epsgMap[data.epsg];
+    }
+    else{
+      let counter = 0;
+      map.forEachFeatureAtPixel(evt.pixel, function (feature) {
+          counter += 1;
+          const props = feature.getProperties();
+          console.log(counter);
+          if (continents.includes(props.name)) return;
+          if (counter != 1) return;
+          popup.innerHTML = props.name;
+          popup.style.display = "block";
+          overlay.setPosition(evt.coordinate);
+      });
+    }
   });
 }
 
@@ -153,26 +177,6 @@ function create2dRightClick(){
         drawInteraction.appendCoordinates([lastPointerCoord]);
       }
       drawInteraction.finishDrawing();
-    }
-    else{
-      const lonlat = ol.proj.toLonLat(map.getEventCoordinate(evt));
-      if (reprojMouse & toEqui7){
-        document.getElementById('x-coord-other').value = lonlat[0].toFixed(6);
-        document.getElementById('y-coord-other').value = lonlat[1].toFixed(6);
-        document.getElementById('other-crs').value = 4326;
-        document.getElementById('x-coord-e7').value = "";
-        document.getElementById('y-coord-e7').value = "";
-      }
-      navigator.clipboard.writeText(lonlat);
-
-      Swal.fire({
-        position: "top-end",
-        icon: "success",
-        title: '<span style="font-size: 18px;font-weight: bold;">Copied coordinate.</span>',
-        showConfirmButton: false,
-        timer: 1500,
-        width: "400px"
-      });
     }
   });
 }
@@ -230,6 +234,7 @@ function create2d(){
   create2dPopup();
   create2dLeftClick();
   create2dRightClick();
+  add2dFocus();
 }
 
 
@@ -240,6 +245,12 @@ function destroyOlHl(){
   if(selectClick){
     selectClick.getFeatures().clear();
   }
+}
+
+function add2dFocus(){
+  map.getViewport().addEventListener('mouseenter', () => {
+    map.getTargetElement().focus();
+  });
 }
 
 function drawPolygon(){
@@ -1300,8 +1311,8 @@ document.getElementById('reproject-coord').onclick = async () => {
     );
     const data = await res.json();
 
-    document.getElementById('x-coord-other').value = data.x.toFixed(3);
-    document.getElementById('y-coord-other').value = data.y.toFixed(3);
+    document.getElementById('x-coord-other').value = data.x.toFixed(6);
+    document.getElementById('y-coord-other').value = data.y.toFixed(6);
   }
 };
 
@@ -1324,6 +1335,20 @@ projSwitchIcon.onclick = () => {
     document.getElementById('y-coord-e7').value = "";
     document.getElementById('proj-continent-selection').disabled = true;
   }
+}
+
+const inputCoordBtn = document.getElementById("input-coord-copy-icon");
+inputCoordBtn.onclick = () => {
+  const x = document.getElementById('x-coord-other').value;
+  const y = document.getElementById('y-coord-other').value;
+  navigator.clipboard.writeText([x, y]);
+}
+
+const outputCoordBtn = document.getElementById("output-coord-copy-icon");
+outputCoordBtn.onclick = () => {
+  const x = document.getElementById('x-coord-e7').value;
+  const y = document.getElementById('y-coord-e7').value;
+  navigator.clipboard.writeText([x, y]);
 }
 
 function setReprojMouse(flag){
@@ -1359,7 +1384,7 @@ const tilingAppIcon = document.getElementById('tiling-app-icon');
 const tilingMinimizeBtn = document.getElementById('minimize-tiling-app');
 
 const app_panels = {"app": appPanel, "proj": projAppPanel, "layer": layerAppPanel, "tile": tileAppPanel, "tiling": tilingAppPanel}
-const app_icons = {"app": appIcon, "proj": projAppIcon, "layer": layerAppIcon, "tile": tileAppIcon, "3d": toggle3dIcon, "tiling": tilingAppIcon}
+const app_icons = {"app": appIcon, "proj": projAppIcon, "layer": layerAppIcon, "tile": tileAppIcon, "tiling": tilingAppIcon}
 
 function minimize_app(){
   Object.values(app_panels).forEach(panel => {

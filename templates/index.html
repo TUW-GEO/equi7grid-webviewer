@@ -65,11 +65,15 @@
     </div>
     <div class="toolbar">
       <div class="coord-container">
+      Use map coordinates <input type="checkbox" onchange="setReprojMouse(this.checked)"></input>
+      </div>
+      <div class="coord-container">
         X: <input class="coord" id="x-coord-other" type="number">
       </div>
       <div class="coord-container">
         Y: <input class="coord" id="y-coord-other" type="number">
       </div>
+      <button id="input-coord-copy-icon" title="Copy input coordinates" class="coord-copy-icon">📋</button>
       <div class="coord-container">
         CRS: <input class="coord" id="other-crs" type="text">
       </div>
@@ -82,6 +86,7 @@
       <div class="coord-container">
         Y (Equi7): <input class="coord-e7" id="y-coord-e7" type="number">
       </div>
+      <button id="output-coord-copy-icon" title="Copy output coordinates" class="coord-copy-icon">📋</button>
       <div class="coord-container">CRS (Equi7): 
         <select name="continents" id="proj-continent-selection" disabled>
           <option value="AF">AF (EPSG: 27701)</option>
@@ -92,9 +97,6 @@
           <option value="OC">OC (EPSG: 27706)</option>
           <option value="SA">SA (EPSG: 27707)</option>
         </select>
-      </div>
-      <div class="coord-container">
-      Use map coordinates <input type="checkbox" onchange="setReprojMouse(this.checked)"></input>
       </div>
       <button id="reproject-coord">Reproject</button>
     </div>
@@ -279,15 +281,15 @@
     </span>
     <span id="header-tools">
       <span class="github-icon">
-        <a href="https://github.com/TUW-GEO/Equi7Grid" style="display: inline-block; margin-top: 5px;">
+        <a href="https://github.com/TUW-GEO/Equi7Grid" style="display: inline-block; margin-top: 5px;" target="_blank" rel="noopener noreferrer">
           <img src="{{ url_for('static', filename='imgs/github-mark.svg') }}" alt="GitHub icon" id="github-icon-logo" width="30px" height="30px">
         </a>
       </span>
       <span class="help-icon">
-        <a href="https://tuw-geo.github.io/Equi7Grid/latest/" style="text-decoration: none">📖</a>
+        <a href="https://tuw-geo.github.io/Equi7Grid/latest/webviewer/index.html" style="text-decoration: none" target="_blank" rel="noopener noreferrer">📖</a>
       </span>
       <span class="help-icon">
-        <a href="https://github.com/TUW-GEO/Equi7Grid/issues/new" style="text-decoration: none">📫</a>
+        <a href="https://github.com/TUW-GEO/Equi7Grid/issues/new" style="text-decoration: none" target="_blank" rel="noopener noreferrer">📫</a>
       </span>
     </span>
   </div>
