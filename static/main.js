@@ -59,8 +59,7 @@ const epsgMap = {27701: "AF", 27702: "AN", 27703:  "AS", 27704:  "EU",
                  27705:  "NA", 27706:  "OC", 27707:  "SA"}
 
 // fetch browser
-const browser = bowser.getParser(window.navigator.userAgent);
-const disable3d = browser.getBrowserName() != "Chrome";
+let disable3d = false; //browser.getBrowserName() != "Chrome";
 
 
 // ---------------
@@ -73,8 +72,8 @@ function create2dOlMap(){
   });
 
   let view = new ol.View({
-    center: ol.proj.fromLonLat([11, 51]),
-    zoom: 5
+    center: ol.proj.fromLonLat([7, 33]),
+    zoom: 4
   });
 
   drawSource = new ol.source.Vector();
@@ -589,13 +588,6 @@ toggle3dIcon.onclick = () => {
       zoomOut3D.style.display = "none";
     }
   }
-  else{
-    Swal.fire({
-      icon: "error",
-      title: "3D view disabled.",
-      text: "3D view is not available in " + `${browser.getBrowserName()}` + ". You need to use Chrome."
-    });
-  }
 }
 
 function applyCsLabels(csPrimitives, activate) {
@@ -925,9 +917,24 @@ async function init_standard_grids(){
   updateStyles();
 }
 
+
+function showInitZones(){
+  layerRegistry["AF_ZONE"].visible = true;
+  layerRegistry["AS_ZONE"].visible = true;
+  layerRegistry["NA_ZONE"].visible = true;
+  layerRegistry["EU_ZONE"].visible = true;
+  layerRegistry["SA_ZONE"].visible = true;
+  setLayerVisible("AF_ZONE", true);
+  setLayerVisible("AS_ZONE", true);
+  setLayerVisible("NA_ZONE", true);
+  setLayerVisible("EU_ZONE", true);
+  setLayerVisible("SA_ZONE", true);
+}
+
 async function initLayers(){
   startLoader();
   await init_zones();
+  showInitZones();
   await init_standard_grids();
   applyLayerOrder(".tiling-item");
   endLoader();
@@ -1276,7 +1283,7 @@ function startLoader(){
 }
 
 function endLoader(){
-  toggle3dIcon.innerHTML = '\uD83C\uDF0D';
+  toggle3dIcon.innerHTML = is3d ? '\uD83D\uDDFA\uFE0F' : '\uD83C\uDF0D';
   toggle3dIcon.disabled = false;
 }
 
@@ -1728,5 +1735,22 @@ function getDragAfterElement(container, y, itemName) {
 
 // launch the application
 create2d();
-init3d();
-initLayers();
+try{
+  init3d();
+}
+catch(error){
+  const webglErrorMsg = "browser supports webgl, but initialization failed";
+  if(error.message.toLowerCase().includes(webglErrorMsg)){
+    disable3d = true;
+    Swal.fire({
+      icon: "error",
+      title: "3D view disabled.",
+      text: "Browser supports WebGL, but initialization failed. Please check your browser settings for hardware acceleration or switch to a different browser."
+    });
+  }
+}
+finally{
+  toggle3dIcon.click();
+  initLayers();
+}
+
