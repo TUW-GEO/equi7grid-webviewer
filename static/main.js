@@ -156,7 +156,6 @@ function create2dLeftClick(){
       map.forEachFeatureAtPixel(evt.pixel, function (feature) {
           counter += 1;
           const props = feature.getProperties();
-          console.log(counter);
           if (continents.includes(props.name)) return;
           if (counter != 1) return;
           popup.innerHTML = props.name;
@@ -173,6 +172,7 @@ function create2dRightClick(){
     if(drawInteraction){
       if (tileQueryOp !== 'POLY-DRAW') return;
       if (lastPointerCoord) {
+        console.log(lastPointerCoord);
         drawInteraction.appendCoordinates([lastPointerCoord]);
       }
       drawInteraction.finishDrawing();
@@ -582,10 +582,18 @@ toggle3dIcon.onclick = () => {
     if(is3d){
       zoomIn3D.style.display = "block";
       zoomOut3D.style.display = "block";
+      tileAppIcon.style.filter = 'grayscale(100%)';
+      tileAppIcon.disabled = true;
+      projAppIcon.style.filter = 'grayscale(100%)';
+      projAppIcon.disabled = true;
     }
     else{
       zoomIn3D.style.display = "none";
       zoomOut3D.style.display = "none";
+      tileAppIcon.style.filter = '';
+      tileAppIcon.disabled = false;
+      projAppIcon.style.filter = '';
+      projAppIcon.disabled = false;
     }
   }
 }
@@ -697,6 +705,7 @@ function highlightTile(tile){
   tileItem.classList.toggle("active");
 
   const dsId = createDsIdFromName(tile);
+  if(!(dsId in layerRegistry)) return;
   const feature = layerRegistry[dsId]["ol"].getSource().getFeatures().find(f => f.get('name') === tile);
   if(feature){
     const selectedStyle = createLabelStyle(feature, dsId)
@@ -760,6 +769,7 @@ document.getElementById('query-tiles').onclick = async () => {
     const feature = drawSource.getFeatures()[0];
     const wkt = new ol.format.WKT();
     const wktGeom = wkt.writeGeometry(feature.getGeometry());
+    console.log(wktGeom);
     res = await fetch(
       `/queryTilesFromWkt?wkt=${wktGeom}&tiling_id=${tiling_id}`
     );
@@ -806,7 +816,6 @@ document.getElementById('query-tiles').onclick = async () => {
   csHlPrimitive.show = true;
   scene.primitives.add(csHlPrimitive);
   queryData = data;
-  clearDrawings();
   tileQueryOp = null;
 };
 
@@ -885,6 +894,8 @@ async function loadTiling(){
     tilingElem.innerText = tilingId;
     const selectContTiling = document.getElementById(`select-tiling-${continent.toLowerCase()}`);
     selectContTiling.appendChild(tilingElem);
+    const selectTilesTiling = document.getElementById("tiles-tiling");
+    selectTilesTiling.appendChild(tilingElem);
   }
 }
 
@@ -1275,6 +1286,17 @@ e7tile = Equi7Tile(**json_dict)
     width: "400px"
   });
 }
+
+document.getElementById('del-e7tiles-icon').onclick = () => {
+  const tileList = document.getElementById('tile-list');
+  tileList.innerHTML = '';
+  if(csHlPrimitive){
+    scene.primitives.remove(csHlPrimitive);
+    csHlPrimitive.destroy();
+  }
+  updateStyles();
+}
+
 
 // setup dataset loader animation
 function startLoader(){

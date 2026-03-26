@@ -539,7 +539,11 @@ input[type="color"]::-moz-color-swatch {
 }
 
 #copy-e7tiles-icon {
-    margin-left: 90px;
+    margin-left: 92px;
+}
+
+#del-e7tiles-icon {
+    margin-left: 142px;
 }
 
 .continent-container{
