@@ -151,25 +151,42 @@ html, body {
     display: block;
 }
 
-#settings-app-icon {
-    top: calc(180px + var(--header-height));
+#expert-settings-app-icon {
+    top: calc(220px + var(--header-height));
 }
 
 #proj-app-icon {
-    top: calc(60px + var(--header-height));
-}
-
-#tiling-app-icon {
-    top: calc(20px + var(--header-height));
-}
-
-#layer-app-icon {
     top: calc(100px + var(--header-height));
 }
 
-#tile-app-icon {
+#tiling-app-icon {
+    top: calc(60px + var(--header-height));
+}
+
+#layer-app-icon {
     top: calc(140px + var(--header-height));
 }
+
+#tile-app-icon {
+    top: calc(180px + var(--header-height));
+}
+
+#home-icon {
+    top: calc(20px + var(--header-height));
+}
+
+#zone-icon {
+    top: calc(60px + var(--header-height));
+}
+
+#basic-tiling-icon {
+    top: calc(100px + var(--header-height));
+}
+
+#basic-settings-app-icon {
+    top: calc(140px + var(--header-height));
+}
+
 
 .bbox {
   display: none;
@@ -380,6 +397,43 @@ html, body {
     float: right;
     line-height: 45px;
     margin-right: 10px;
+}
+
+.mode-container {
+    font-size: 25px;
+    height: 50px;
+    display: inline-block; 
+    margin-right: 20px;
+    padding-bottom: 20px;
+    vertical-align: middle;
+}
+
+#basicMode{
+    font-size: 16px;
+    margin-right: 5px;
+}
+
+#expertMode{
+    font-size: 16px;
+}
+
+.mode-container button.active{
+    background-color: #dcdcdc;
+    border-color: #000000;
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.14);
+}
+
+.mode-container button {
+    background-color: #f2f2f2;
+    color: #333;
+    border: 1px solid #d6d6d6;
+    padding: 5px 9px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    /* initial subtle lift */
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
 }
 
 .github-icon {

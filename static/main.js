@@ -13,6 +13,9 @@ let drawInteraction = null;
 let selectClick = null;
 let lastPointerCoord = null;
 let stdSampling = 500;
+let zonesActive = true;
+let basicTilingActive = true;
+let basicTilingViewRegistry = [];
 
 // 2D settings
 let drawSource = null;
@@ -24,7 +27,6 @@ let scene = null;
 let handler = null;
 let camera = null;
 let csHlPrimitive = null;
-
 
 // -------------------------
 // constant global variables
@@ -60,20 +62,48 @@ const epsgMap = {27701: "AF", 27702: "AN", 27703:  "AS", 27704:  "EU",
 
 // fetch browser
 let disable3d = false; //browser.getBrowserName() != "Chrome";
+const initViewPoint = [7, 33];
+const initZoom = 4;
+
+// ----------------
+// Mode interaction
+// ----------------
+
+const basicModeBtn = document.getElementById("basicMode");
+const expertModeBtn = document.getElementById("expertMode");
+const basicTools = document.getElementById("basicTools"); 
+const expertTools = document.getElementById("expertTools"); 
+basicModeBtn.onclick = () => {
+  basicModeBtn.classList.add("active");
+  expertModeBtn.classList.remove("active");
+  basicTools.style.display = "";
+  expertTools.style.display = "None";
+  syncToBasicTilingRegistry();
+  minimize_app();
+}
+expertModeBtn.onclick = () => {
+  basicModeBtn.classList.remove("active");
+  expertModeBtn.classList.add("active");
+  basicTools.style.display = "None";
+  expertTools.style.display = "";
+  renderLayerSwitcher();
+  updateStyles();
+}
+
 
 
 // ---------------
 // 2D map creation
 // ---------------
+const initView = new ol.View({
+    center: ol.proj.fromLonLat(initViewPoint),
+    zoom: initZoom
+  });
+
 
 function create2dOlMap(){
   const osmLayer = new ol.layer.Tile({
     source: new ol.source.OSM()
-  });
-
-  let view = new ol.View({
-    center: ol.proj.fromLonLat([7, 33]),
-    zoom: 4
   });
 
   drawSource = new ol.source.Vector();
@@ -95,7 +125,7 @@ function create2dOlMap(){
   map = new ol.Map({
       target: 'map',
       layers: [osmLayer],
-      view: view
+      view: initView
   });
   map.addLayer(drawLayer);
 }
@@ -172,7 +202,6 @@ function create2dRightClick(){
     if(drawInteraction){
       if (tileQueryOp !== 'POLY-DRAW') return;
       if (lastPointerCoord) {
-        console.log(lastPointerCoord);
         drawInteraction.appendCoordinates([lastPointerCoord]);
       }
       drawInteraction.finishDrawing();
@@ -527,41 +556,6 @@ function destroyCsHl(){
   popup.style.display = "None";
 }
 
-async function addZones3d(dsId){
-  const layer = layerRegistry[dsId];
-  const style = styleRegistry[dsId];
-  const continent = dsId.split("_")[0]
-  const csURL = `/createGeoms?continent=${continent}&env=cs`;
-  const csPrimitives = await createCsSource(dsId, csURL, style, layer.visible);
-  layer.cesium = csPrimitives;
-  if(layer.cesium){
-    layer.cesium[0].show = true;
-    layer.cesium[1].show = true;
-  }
-}
-
-function delZones3d(dsId){
-  const layer = layerRegistry[dsId];
-  if(layer.cesium){
-      for(const primitive of layer.cesium){
-        scene.primitives.remove(primitive);
-        primitive.destroy();
-      }
-      layer.cesium = null;
-  } 
-}
-
-async function updateZones3d(addZone){
-  for(const dsId of Object.keys(layerRegistry)){
-    if(!dsId.includes("ZONE")){continue;};
-    if(addZone){
-      addZones3d(dsId);
-    }else{
-      delZones3d(dsId);
-    }
-  }
-}
-
 const zoomIn3D = document.getElementById('zoom-in');
 const zoomOut3D = document.getElementById('zoom-out');
 const toggle3dIcon = document.getElementById('toggle-3d-icon');
@@ -574,6 +568,7 @@ zoomOut3D.onclick = () => {
     camera.zoomOut(camera.positionCartographic.height * 0.2);
   };
 
+const strokeContainer = document.getElementById("strokeContainer");
 toggle3dIcon.onclick = () => {
   if (!disable3d){
     set3D(!is3d);
@@ -586,6 +581,7 @@ toggle3dIcon.onclick = () => {
       tileAppIcon.disabled = true;
       projAppIcon.style.filter = 'grayscale(100%)';
       projAppIcon.disabled = true;
+      strokeContainer.style.display = "none";
     }
     else{
       zoomIn3D.style.display = "none";
@@ -594,6 +590,7 @@ toggle3dIcon.onclick = () => {
       tileAppIcon.disabled = false;
       projAppIcon.style.filter = '';
       projAppIcon.disabled = false;
+      strokeContainer.style.display = "block";
     }
   }
 }
@@ -634,7 +631,6 @@ function moveCsCredits() {
 // ---------------------
 async function set3D(enabled) {
   is3d = enabled;
-  await updateZones3d(enabled);
   ol3d.setEnabled(enabled);
 
   Object.values(layerRegistry).forEach(layer => {
@@ -769,7 +765,6 @@ document.getElementById('query-tiles').onclick = async () => {
     const feature = drawSource.getFeatures()[0];
     const wkt = new ol.format.WKT();
     const wktGeom = wkt.writeGeometry(feature.getGeometry());
-    console.log(wktGeom);
     res = await fetch(
       `/queryTilesFromWkt?wkt=${wktGeom}&tiling_id=${tiling_id}`
     );
@@ -841,7 +836,7 @@ async function registerDataset(id, url){
 
   const csURL = url + "&env=cs"
   const isZone = !url.includes("tiling_id");
-  const csPrimitives = await createCsSource(id, csURL, style, !isZone);
+  const csPrimitives = await createCsSource(id, csURL, style, true);
 
   layerRegistry[id] = {
     ol: olLayer,
@@ -850,18 +845,16 @@ async function registerDataset(id, url){
   };
 }
 
+function hideAllLayers(){
+    Object.keys(layerRegistry).forEach(dsId => {
+      setLayerVisible(dsId, false);
+    });
+}
+
 async function setLayerVisible(dsId, visible){
   const layer = layerRegistry[dsId];
   if (!layer) return;
   layer.visible = visible;
-
-  const isZone = dsId.includes("ZONE");
-  if(is3d && isZone && visible){
-    await addZones3d(dsId);
-  }
-  else if(is3d && isZone && !visible){
-    delZones3d(dsId);
-  }
   
   if (layer.ol) {
     if(!disable3d){
@@ -917,38 +910,48 @@ async function init_zones(){
   renderLayerSwitcher();
 }
 
+function syncToBasicTilingRegistry(){
+  basicTilingViewRegistry = [];
+  Object.keys(layerRegistry).forEach(dsId => {
+    if(layerRegistry[dsId].visible & !dsId.includes("ZONE")){
+       basicTilingViewRegistry.push(dsId);
+    }
+  });
+}
+
 async function init_standard_grids(){
   for (const continent of continents){
     for (const tilingId of initTilingIds){  
         const dsId = continent + "_" + tilingId
         await registerDataset(dsId, `/createGeoms?continent=${continent}&tiling_id=${tilingId}`);
+        layerRegistry[dsId].visible = true;
     }
   }
   renderLayerSwitcher();
+  syncToBasicTilingRegistry();
   updateStyles();
 }
 
+function maybeShowZone(continent){
+  const dsId = `${continent}_ZONE`;
+  if(!layerRegistry[dsId].visible){
+    setLayerVisible(dsId, true);
+    layerRegistry[dsId].visible = true;
+  }
+}
 
 function showInitZones(){
-  layerRegistry["AF_ZONE"].visible = true;
-  layerRegistry["AS_ZONE"].visible = true;
-  layerRegistry["NA_ZONE"].visible = true;
-  layerRegistry["EU_ZONE"].visible = true;
-  layerRegistry["SA_ZONE"].visible = true;
-  setLayerVisible("AF_ZONE", true);
-  setLayerVisible("AS_ZONE", true);
-  setLayerVisible("NA_ZONE", true);
-  setLayerVisible("EU_ZONE", true);
-  setLayerVisible("SA_ZONE", true);
+  continents.forEach(continent => {maybeShowZone(continent);})
 }
 
 async function initLayers(){
   startLoader();
   await init_zones();
-  showInitZones();
   await init_standard_grids();
   applyLayerOrder(".tiling-item");
   endLoader();
+  basicTilingIcon.click();
+  showInitZones();
 }
 
 function convertCsToOlCoordinate(cartesian) {
@@ -975,6 +978,13 @@ function labelTiles(checked){
 function showZones(checked){
   continents.forEach(continent => setLayerVisible(continent + "_ZONE", checked));
 }
+
+function showBasicTilings(checked){
+  basicTilingViewRegistry.forEach(dsId => {
+    setLayerVisible(dsId, checked);
+  });
+}
+
 
 async function doAddDelPerTiling(continent, tilingId, remove){
     const dsId = continent + "_" + tilingId;
@@ -1302,11 +1312,17 @@ document.getElementById('del-e7tiles-icon').onclick = () => {
 function startLoader(){
   toggle3dIcon.innerHTML = `<span class="loader" id="loader"></span>`;
   toggle3dIcon.disabled = true;
+  Object.values(app_icons).forEach(iconBtn => {
+    iconBtn.disabled = true;
+  });
 }
 
 function endLoader(){
   toggle3dIcon.innerHTML = is3d ? '\uD83D\uDDFA\uFE0F' : '\uD83C\uDF0D';
   toggle3dIcon.disabled = false;
+  Object.values(app_icons).forEach(iconBtn => {
+    iconBtn.disabled = false;
+  });
 }
 
 // setup coordinate reprojection
@@ -1392,8 +1408,13 @@ function setReprojMouse(flag){
 }
 
 // app panel management
+const homeIcon = document.getElementById('home-icon');
+const zoneIcon = document.getElementById('zone-icon');
+const basicTilingIcon = document.getElementById('basic-tiling-icon');
+
 const appPanel = document.getElementById('settings-app');
-const appIcon = document.getElementById('settings-app-icon');
+const expertAppIcon = document.getElementById('expert-settings-app-icon');
+const basicAppIcon = document.getElementById('basic-settings-app-icon');
 const minimizeBtn = document.getElementById('minimize-settings-app');
 
 const projAppPanel = document.getElementById('proj-app');
@@ -1413,7 +1434,7 @@ const tilingAppIcon = document.getElementById('tiling-app-icon');
 const tilingMinimizeBtn = document.getElementById('minimize-tiling-app');
 
 const app_panels = {"app": appPanel, "proj": projAppPanel, "layer": layerAppPanel, "tile": tileAppPanel, "tiling": tilingAppPanel}
-const app_icons = {"app": appIcon, "proj": projAppIcon, "layer": layerAppIcon, "tile": tileAppIcon, "tiling": tilingAppIcon}
+const app_icons = {"home": homeIcon, "zone": zoneIcon, "basictiling": basicTilingIcon, "basicapp": basicAppIcon, "expertapp": expertAppIcon, "proj": projAppIcon, "layer": layerAppIcon, "tile": tileAppIcon, "tiling": tilingAppIcon}
 
 function minimize_app(){
   Object.values(app_panels).forEach(panel => {
@@ -1443,7 +1464,12 @@ minimizeBtn.onclick = () => {
     setTimeout(() => map.updateSize(), 50);
 };
 
-appIcon.onclick = () => {
+basicAppIcon.onclick = () => {
+    open_app("app")
+    setTimeout(() => map.updateSize(), 50);
+};
+
+expertAppIcon.onclick = () => {
     open_app("app")
     setTimeout(() => map.updateSize(), 50);
 };
@@ -1487,6 +1513,44 @@ tilingAppIcon.onclick = () => {
     open_app("tiling")
     setTimeout(() => map.updateSize(), 50);
 };
+
+
+const homeViewBtn = document.getElementById("home-icon");
+homeViewBtn.onclick = () => {
+  map.getView().setCenter(ol.proj.transform(initViewPoint, 'EPSG:4326', 'EPSG:3857'));
+  map.getView().setZoom(initZoom);
+  hideAllLayers();
+  showInitZones();
+  renderLayerSwitcher();
+  updateStyles();
+}
+
+
+const showZonesBtn = document.getElementById("zone-icon");
+showZonesBtn.onclick = () => {
+  zonesActive = !zonesActive;
+  if (zonesActive){
+    showZones(true);
+    showZonesBtn.style.filter = '';
+  }
+  else{
+    showZones(false);
+    showZonesBtn.style.filter = 'grayscale(60%)';
+  }
+}
+
+
+basicTilingIcon.onclick = () => {
+  basicTilingActive = !basicTilingActive;
+  if (basicTilingActive){
+    showBasicTilings(true);
+    basicTilingIcon.style.filter = '';
+  }
+  else{
+    showBasicTilings(false);
+    basicTilingIcon.style.filter = 'grayscale(60%)';
+  }
+} 
 
 // tiling layer management
 const addTilingAF = document.getElementById("add-tiling-af");
@@ -1772,7 +1836,7 @@ catch(error){
   }
 }
 finally{
+  basicModeBtn.click();
   toggle3dIcon.click();
   initLayers();
 }
-
