@@ -2,7 +2,7 @@
 authors = [{ name = "TU Wien", email = "remote.sensing@geo.tuwien.ac.at" },
             { name = "EODC", email = "office@eodc.eu" }]
 name = "equi7grid-webviewer"
-version = "0.1.0"
+version = "0.2.0"
 description = "Webviewer for Equi7Grid zone, tiling system, and tile display and interaction."
 readme = "README.md"
 requires-python = ">=3.11"
