@@ -63,7 +63,8 @@ const epsgMap = {27701: "AF", 27702: "AN", 27703:  "AS", 27704:  "EU",
 // fetch browser
 let disable3d = false; //browser.getBrowserName() != "Chrome";
 const initViewPoint = [7, 33];
-const initZoom = 4;
+const initZoom3d = 2;
+const initZoom2d = 2;
 
 // ----------------
 // Mode interaction
@@ -97,7 +98,7 @@ expertModeBtn.onclick = () => {
 // ---------------
 const initView = new ol.View({
     center: ol.proj.fromLonLat(initViewPoint),
-    zoom: initZoom
+    zoom: initZoom3d
   });
 
 
@@ -1521,7 +1522,7 @@ tilingAppIcon.onclick = () => {
 const homeViewBtn = document.getElementById("home-icon");
 homeViewBtn.onclick = () => {
   map.getView().setCenter(ol.proj.transform(initViewPoint, 'EPSG:4326', 'EPSG:3857'));
-  map.getView().setZoom(initZoom);
+  map.getView().setZoom(is3d? initZoom3d : initZoom2d);
   hideAllLayers();
   showInitZones();
   renderLayerSwitcher();
