@@ -569,10 +569,12 @@ zoomOut3D.onclick = () => {
   };
 
 const strokeContainer = document.getElementById("strokeContainer");
+const pointerContainer = document.getElementById('pointer-coords');
 toggle3dIcon.onclick = () => {
   if (!disable3d){
     set3D(!is3d);
     toggle3dIcon.innerText = is3d ? '\uD83D\uDDFA\uFE0F' : '\uD83C\uDF0D';
+    pointerContainer.style.display = is3d ? 'None' : '';
 
     if(is3d){
       zoomIn3D.style.display = "block";
@@ -815,14 +817,16 @@ document.getElementById('query-tiles').onclick = async () => {
 };
 
 
-async function registerDataset(id, url){
+async function registerDataset(dsId, url){
   const olURL = url + "&env=ol"
-  if (!(id in styleRegistry)){
-    styleRegistry[id] = {...defaultStyle};
+  if (!(dsId in styleRegistry)){
+    styleRegistry[dsId] = {...defaultStyle};
+    const continent = dsId.split("_")[0];
+    styleRegistry[dsId]["fillColor"] = zoneColours[continent]; 
   }
-  const style = styleRegistry[id];
+  const style = styleRegistry[dsId];
   
-  const olLayer = createOlVectorLayer(olURL, id);
+  const olLayer = createOlVectorLayer(olURL, dsId);
   map.addLayer(olLayer);
 
   const olSource = olLayer.getSource();
@@ -835,10 +839,9 @@ async function registerDataset(id, url){
   });
 
   const csURL = url + "&env=cs"
-  const isZone = !url.includes("tiling_id");
-  const csPrimitives = await createCsSource(id, csURL, style, true);
+  const csPrimitives = await createCsSource(dsId, csURL, style, true);
 
-  layerRegistry[id] = {
+  layerRegistry[dsId] = {
     ol: olLayer,
     cesium: csPrimitives,
     visible: false
