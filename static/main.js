@@ -1837,6 +1837,13 @@ catch(error){
       text: "Browser supports WebGL, but initialization failed. Please check your browser settings for hardware acceleration or switch to a different browser."
     });
   }
+  else{
+    Swal.fire({
+      icon: "error",
+      title: "Error during Webviewer launch.",
+      text: `The following error occured: '${error.message}'. Please report it as an issue on Github.`
+    });
+  }
 }
 finally{
   basicModeBtn.click();
