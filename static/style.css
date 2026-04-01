@@ -1,5 +1,6 @@
 :root {
   --header-height: 50px;
+  --mode-height: 40px;
   --bg: #ffffff;
   --fg: #000000;
 }
@@ -152,39 +153,39 @@ html, body {
 }
 
 #expert-settings-app-icon {
-    top: calc(220px + var(--header-height));
+    top: calc(220px + var(--header-height) + var(--mode-height));
 }
 
 #proj-app-icon {
-    top: calc(100px + var(--header-height));
+    top: calc(100px + var(--header-height) + var(--mode-height));
 }
 
 #tiling-app-icon {
-    top: calc(60px + var(--header-height));
+    top: calc(60px + var(--header-height) + var(--mode-height));
 }
 
 #layer-app-icon {
-    top: calc(140px + var(--header-height));
+    top: calc(140px + var(--header-height) + var(--mode-height));
 }
 
 #tile-app-icon {
-    top: calc(180px + var(--header-height));
+    top: calc(180px + var(--header-height) + var(--mode-height));
 }
 
 #home-icon {
-    top: calc(20px + var(--header-height));
+    top: calc(20px + var(--header-height) + var(--mode-height));
 }
 
 #zone-icon {
-    top: calc(60px + var(--header-height));
+    top: calc(60px + var(--header-height) + var(--mode-height));
 }
 
 #basic-tiling-icon {
-    top: calc(100px + var(--header-height));
+    top: calc(100px + var(--header-height) + var(--mode-height));
 }
 
 #basic-settings-app-icon {
-    top: calc(140px + var(--header-height));
+    top: calc(140px + var(--header-height) + var(--mode-height));
 }
 
 
@@ -400,11 +401,15 @@ html, body {
 }
 
 .mode-container {
+    position: absolute;
+    top: calc(15px + var(--header-height));
+    left: 20px;
     font-size: 25px;
     height: 50px;
-    display: inline-block; 
-    margin-right: 20px;
-    padding-bottom: 20px;
+    z-index: 2001;
+    display: inline-block;
+    /*margin-right: 20px;
+    padding-bottom: 20px;*/
     vertical-align: middle;
 }
 
@@ -424,7 +429,7 @@ html, body {
 }
 
 .mode-container button {
-    background-color: #f2f2f2;
+    background-color: #f2f2f275;
     color: #333;
     border: 1px solid #d6d6d6;
     padding: 5px 9px;

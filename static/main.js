@@ -63,8 +63,8 @@ const epsgMap = {27701: "AF", 27702: "AN", 27703:  "AS", 27704:  "EU",
 // fetch browser
 let disable3d = false; //browser.getBrowserName() != "Chrome";
 const initViewPoint = [7, 33];
-const initZoom3d = 2;
-const initZoom2d = 2;
+const initZoom3d = 3;
+const initZoom2d = 3;
 
 // ----------------
 // Mode interaction
