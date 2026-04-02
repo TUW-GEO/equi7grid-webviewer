@@ -1,5 +1,11 @@
 # Changelog
 
+## Version 0.2.1
+
+- moved mode buttons
+- aligned zone and tile colouring
+- adjusted 2d and 3d home view zoom level
+
 ## Version 0.2.0
 
 - added basic and expert mode
