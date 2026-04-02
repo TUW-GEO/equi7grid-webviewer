@@ -1412,6 +1412,8 @@ function setReprojMouse(flag){
 }
 
 // app panel management
+const modeContainer = document.getElementById("modeContainer");
+
 const homeIcon = document.getElementById('home-icon');
 const zoneIcon = document.getElementById('zone-icon');
 const basicTilingIcon = document.getElementById('basic-tiling-icon');
@@ -1438,7 +1440,9 @@ const tilingAppIcon = document.getElementById('tiling-app-icon');
 const tilingMinimizeBtn = document.getElementById('minimize-tiling-app');
 
 const app_panels = {"app": appPanel, "proj": projAppPanel, "layer": layerAppPanel, "tile": tileAppPanel, "tiling": tilingAppPanel}
-const app_icons = {"home": homeIcon, "zone": zoneIcon, "basictiling": basicTilingIcon, "basicapp": basicAppIcon, "expertapp": expertAppIcon, "proj": projAppIcon, "layer": layerAppIcon, "tile": tileAppIcon, "tiling": tilingAppIcon}
+const app_icons = {"home": homeIcon, "zone": zoneIcon, "basictiling": basicTilingIcon, "basicapp": basicAppIcon, "expertapp": expertAppIcon, "proj": projAppIcon, "layer": layerAppIcon, "tile": tileAppIcon, "tiling": tilingAppIcon, 
+  "mode": modeContainer,
+}
 
 function minimize_app(){
   Object.values(app_panels).forEach(panel => {
