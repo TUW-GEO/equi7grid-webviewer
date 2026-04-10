@@ -883,6 +883,7 @@ async function loadTiling(){
   const dsId = continent + "_" + tilingId
   if (!(dsId in layerRegistry)){
     await registerDataset(dsId, `/createGeoms?continent=${continent}&tiling_id=${tilingId}&tile_size=${tileSize}`)
+    setLayerVisible(dsId, true);
     renderLayerSwitcher();
     updateStyles();
 

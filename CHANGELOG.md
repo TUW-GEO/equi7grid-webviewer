@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 0.2.2
+
+- switched icon location of layer manager and tiling creator
+- set created layer automatically as visible
+
 ## Version 0.2.1
 
 - moved mode buttons
