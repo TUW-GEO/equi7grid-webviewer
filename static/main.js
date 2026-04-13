@@ -1309,6 +1309,7 @@ document.getElementById('del-e7tiles-icon').onclick = () => {
     scene.primitives.remove(csHlPrimitive);
     csHlPrimitive.destroy();
   }
+  clearDrawings();
   updateStyles();
 }
 
