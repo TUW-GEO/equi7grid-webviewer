@@ -1,5 +1,10 @@
 # Changelog
 
+## Version 0.2.3
+
+- added error propagation and notifications
+- fixed high GPU usage
+
 ## Version 0.2.2
 
 - switched icon location of layer manager and tiling creator

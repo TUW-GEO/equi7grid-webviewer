@@ -7,6 +7,7 @@ import shapely.wkt as swkt
 import geopandas as gpd
 
 from pathlib import Path
+from functools import wraps
 from pyproj import Transformer
 from flask import Flask, jsonify, render_template, request, Response
 from pytileproj import ProjCoord
@@ -73,7 +74,22 @@ def get_zone_polygons(continent: str, env: str) -> list[shapely.Polygon]:
     return polygons
 
 
+def catch_custom_exception(func):
+    @wraps(func)
+    def decorated_function(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            response = {
+                'status_code': 500,
+                'status': str(e)
+            }
+            return jsonify(response), 500
+    return decorated_function
+
+
 @app.route("/createGeoms")
+@catch_custom_exception
 def create_geoms() -> Response:
     """Create tile and zone geometries."""
     continent = request.args.get("continent", "EU")

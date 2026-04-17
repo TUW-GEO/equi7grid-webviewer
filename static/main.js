@@ -236,10 +236,34 @@ function createLabelStyle(feature, dsId) {
 }
 
 function createOlVectorLayer(url, dsId) {
-  const vectorSource = new ol.source.Vector({
-      url,
-      format: new ol.format.GeoJSON()
-    })
+  return new Promise((resolve, reject) => {
+    let vectorSource;
+    vectorSource = new ol.source.Vector({
+        format: new ol.format.GeoJSON(),
+        loader: async function(extent, resolution, projection, success, failure) {
+          try {
+              const response = await fetch(url);
+              const data = await response.json();
+              
+              if (data.status_code && data.status_code !== 200) {
+                  // Your Flask error response
+                  reject(new Error(data.status));
+                  failure();  // Triggers source error state
+                  return;
+              }
+              
+              const features = vectorSource.getFormat().readFeatures(data, {
+                  featureProjection: projection
+              });
+              vectorSource.addFeatures(features);
+              success(features);
+              resolve(vectorLayer);
+          } catch (e) {
+              reject(e);
+              failure();
+          }
+      }
+  })
 
   const vectorLayer = new ol.layer.Vector({
     source: vectorSource,
@@ -254,6 +278,7 @@ function createOlVectorLayer(url, dsId) {
   );
 
   return vectorLayer
+  });
 }
 
 function create2d(){
@@ -349,10 +374,14 @@ polyDrawBtn.onclick = () => {
 async function create3d(){
   if (!disable3d){
     ol3d = new olcs.OLCesium({ map, 
-      synchronize: false 
+      synchronize: false,
+      requestRenderMode : true,
+      maximumRenderTimeChange : Infinity
     });
 
     scene = ol3d.getCesiumScene();
+    scene.requestRenderMode = true;
+    scene.maximumRenderTimeChange = Infinity;
     handler = new Cesium.ScreenSpaceEventHandler(scene.canvas);
     camera = scene.camera;
 
@@ -360,6 +389,7 @@ async function create3d(){
       if (!ol3d.getEnabled()) return;
 
       destroyCsHl();
+      scene.requestRender();
       
       const picked = scene.pick(movement.position);
       if (!picked || !picked.id) return;
@@ -658,6 +688,7 @@ async function set3D(enabled) {
     requestAnimationFrame(() => {
       requestAnimationFrame(moveCsCredits);
     });
+    scene.requestRender();
   }
 }
 
@@ -674,6 +705,7 @@ function highlightSingleTile(tile){
   if(csHlPrimitive){
     scene.primitives.remove(csHlPrimitive);
     csHlPrimitive.destroy();
+    scene.requestRender();
   }
 
   const csGeom = highlightTile(tile);
@@ -697,6 +729,7 @@ function highlightSingleTile(tile){
     csHlPrimitive.show = true;
 
   scene.primitives.add(csHlPrimitive);
+  scene.requestRender();
 }
 
 function highlightTile(tile){
@@ -813,6 +846,7 @@ document.getElementById('query-tiles').onclick = async () => {
   })
   csHlPrimitive.show = true;
   scene.primitives.add(csHlPrimitive);
+  scene.requestRender();
   queryData = data;
   tileQueryOp = null;
 };
@@ -827,8 +861,19 @@ async function registerDataset(dsId, url){
   }
   const style = styleRegistry[dsId];
   
-  const olLayer = createOlVectorLayer(olURL, dsId);
-  map.addLayer(olLayer);
+  let olLayer;
+  try{
+    olLayer = await createOlVectorLayer(olURL, dsId);
+    map.addLayer(olLayer);
+  }
+  catch(error){
+    Swal.fire({
+      icon: "error",
+      title: "Error during layer creation.",
+      text: error.message
+    });
+    return
+  }
 
   const olSource = olLayer.getSource();
   await new Promise(resolve => {
@@ -871,6 +916,7 @@ async function setLayerVisible(dsId, visible){
   if (layer.cesium) {
     layer.cesium[0].show = ol3d.getEnabled() && visible;
     layer.cesium[1].show = ol3d.getEnabled() && visible;
+    scene.requestRender();
   }
 }
 
@@ -883,17 +929,19 @@ async function loadTiling(){
   const dsId = continent + "_" + tilingId
   if (!(dsId in layerRegistry)){
     await registerDataset(dsId, `/createGeoms?continent=${continent}&tiling_id=${tilingId}&tile_size=${tileSize}`)
-    setLayerVisible(dsId, true);
-    renderLayerSwitcher();
-    updateStyles();
+    if(dsId in layerRegistry){
+      setLayerVisible(dsId, true);
+      renderLayerSwitcher();
+      updateStyles();
 
-    const tilingElem = document.createElement("option");
-    tilingElem.value = tilingId;
-    tilingElem.innerText = tilingId;
-    const selectContTiling = document.getElementById(`select-tiling-${continent.toLowerCase()}`);
-    selectContTiling.appendChild(tilingElem);
-    const selectTilesTiling = document.getElementById("tiles-tiling");
-    selectTilesTiling.appendChild(tilingElem);
+      const tilingElem = document.createElement("option");
+      tilingElem.value = tilingId;
+      tilingElem.innerText = tilingId;
+      const selectContTiling = document.getElementById(`select-tiling-${continent.toLowerCase()}`);
+      selectContTiling.appendChild(tilingElem);
+      const selectTilesTiling = document.getElementById("tiles-tiling");
+      selectTilesTiling.appendChild(tilingElem);
+    }
   }
 }
 
