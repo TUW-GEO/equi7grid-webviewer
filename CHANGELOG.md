@@ -4,6 +4,7 @@
 
 - added error propagation and notifications
 - fixed high GPU usage
+- modified help logos
 
 ## Version 0.2.2
 

@@ -396,7 +396,7 @@ html, body {
 
 #header-tools{
     float: right;
-    line-height: 45px;
+    /*line-height: 45px;*/
     margin-right: 10px;
 }
 
@@ -439,21 +439,68 @@ html, body {
 }
 
 .github-icon {
-    display: inline-block; 
-    margin-right: 10px;
-}
-
-.github-icon img{
     display: inline-block;
+    position: relative;       /* anchor for the absolute label */
     vertical-align: middle;
-    margin-bottom: 12px; 
+    font-size: 10px;
+    line-height: 1;
+    margin-right: 8px;
+    margin-top: 5px;
 }
 
+.github-icon a {
+    display: block;
+    line-height: 0;           /* removes space under image */
+}
+
+.github-icon img {
+    display: block;
+    margin-bottom: 0;
+    vertical-align: initial;
+}
+
+.github-icon > span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-weight: bold;
+    pointer-events: none;     /* clicks pass through to the link */
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);  /* readability over any bg */
+}
+
+.help-icon {
+    display: inline-block;
+    position: relative;
+    vertical-align: middle;
+    font-size: 40px;
+    text-decoration: none;
+    line-height: 1;
+}
+
+.help-icon a {
+    display: block;
+    line-height: 1;
+}
+
+.help-icon > span {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 10px;
+    color: white;
+    font-weight: bold;
+    pointer-events: none;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.8);
+}
+/*
 .help-icon {
     display: inline-block; 
     font-size: 35px;
     text-decoration: none;
-}
+}*/
 
 #layer-toolbar input[type="color"]{
   width: 15px !important;
