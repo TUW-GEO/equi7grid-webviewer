@@ -276,6 +276,28 @@
   <button id="toggle-3d-icon" title="Toggle 3D view">🌍</button>      
   <span id="pointer-coords"><b>Lon:</b> -, <b>Lat:</b> -</span>
   <div class="map-frame">
+    <div id="welcome-screen">
+      <div id="welcome-content">
+        <h1>Welcome to the <span class="welcome-highlight">Equi7Grid webviewer!</span></h1>
+        <p class="welcome-subtitle"><em>Visualize Equi7Grid zones, coordinates,<br>and tilings in your browser.</em></p>
+        <p class="welcome-choose">To get started, choose your preferred map engine:</p>
+        <div class="welcome-engines">
+          <div class="welcome-engine" id="choose-3d">
+            <span class="welcome-engine-icon">🌍</span>
+            <strong>3D globe</strong>
+            <span>best for browsers<br>with GPU support</span>
+          </div>
+          <div class="welcome-engine" id="choose-2d">
+            <span class="welcome-engine-icon">🗺️</span>
+            <strong>2D map</strong>
+            <span>best for lower-<br>performance systems</span>
+          </div>
+        </div>
+        <p class="welcome-notice">On lower-performance systems, the 3D globe may take longer to load or may not load as expected.</p>
+        <p class="welcome-notice">Once loaded, you can switch between map engines with the map button.</p>
+        <p class="welcome-notice">For more information on browser support, please visit our <a href="https://tuw-geo.github.io/Equi7Grid/latest/webviewer/index.html#map" target="_blank" rel="noopener noreferrer">guide</a>.</p>
+      </div>
+    </div>
     <div id="map" tabindex="0"></div>
   </div>
   <div class="header-frame">

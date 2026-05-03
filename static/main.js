@@ -1877,6 +1877,29 @@ function getDragAfterElement(container, y, itemName) {
   }, { offset: Number.NEGATIVE_INFINITY }).element;
 }
 
+function showWelcomeScreen() {
+  const welcomeScreen = document.getElementById('welcome-screen');
+  const choose3d = document.getElementById('choose-3d');
+  const choose2d = document.getElementById('choose-2d');
+
+  if (disable3d) {
+    choose3d.classList.add('disabled');
+    choose3d.title = '3D view is not available in this browser';
+  }
+
+  choose3d.onclick = () => {
+    if (disable3d) return;
+    welcomeScreen.classList.add('hidden');
+    toggle3dIcon.click();
+    initLayers();
+  };
+
+  choose2d.onclick = () => {
+    welcomeScreen.classList.add('hidden');
+    initLayers();
+  };
+}
+
 // launch the application
 create2d();
 try{
@@ -1902,6 +1925,5 @@ catch(error){
 }
 finally{
   basicModeBtn.click();
-  toggle3dIcon.click();
-  initLayers();
+  showWelcomeScreen();
 }

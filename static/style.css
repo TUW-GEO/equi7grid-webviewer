@@ -806,3 +806,108 @@ input[type="color"]::-moz-color-swatch {
     background: transparent;
     padding: 0;
 }
+
+/* Welcome screen */
+#welcome-screen {
+  position: absolute;
+  inset: 0;
+  background: #2e2e2e;
+  z-index: 5000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #e0e0e0;
+}
+
+#welcome-screen.hidden {
+  display: none;
+}
+
+#welcome-content {
+  text-align: center;
+  max-width: 700px;
+  padding: 40px;
+}
+
+#welcome-content h1 {
+  font-size: 1.9em;
+  font-weight: normal;
+  color: #e0e0e0;
+  margin-bottom: 8px;
+}
+
+.welcome-highlight {
+  font-weight: bold;
+  color: #e0a858;
+}
+
+.welcome-subtitle {
+  color: #e0a858;
+  font-style: italic;
+  font-size: 1.1em;
+  margin-bottom: 28px;
+}
+
+.welcome-choose {
+  font-size: 1.05em;
+  margin-bottom: 24px;
+}
+
+.welcome-engines {
+  display: flex;
+  gap: 60px;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.welcome-engine {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 12px 20px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.welcome-engine:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.welcome-engine.disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.welcome-engine-icon {
+  font-size: 3.2em;
+  display: block;
+  width: 90px;
+  height: 90px;
+  line-height: 90px;
+  background: #1a1a1a;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.welcome-engine strong {
+  color: #e0a858;
+  font-size: 1.15em;
+}
+
+.welcome-engine span:last-child {
+  font-size: 0.9em;
+  color: #ccc;
+  line-height: 1.4;
+}
+
+.welcome-notice {
+  font-size: 0.9em;
+  margin: 7px 0;
+  color: #bbb;
+}
+
+.welcome-notice a {
+  color: #e0a858;
+}
