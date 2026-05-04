@@ -1889,6 +1889,7 @@ function showWelcomeScreen() {
 
   choose3d.onclick = () => {
     if (disable3d) return;
+    init3d();
     welcomeScreen.classList.add('hidden');
     toggle3dIcon.click();
     initLayers();
@@ -1896,6 +1897,7 @@ function showWelcomeScreen() {
 
   choose2d.onclick = () => {
     welcomeScreen.classList.add('hidden');
+    disable3d = true;
     initLayers();
   };
 }
@@ -1903,7 +1905,7 @@ function showWelcomeScreen() {
 // launch the application
 create2d();
 try{
-  init3d();
+  showWelcomeScreen();
 }
 catch(error){
   const webglErrorMsg = "browser supports webgl, but initialization failed";
@@ -1925,5 +1927,4 @@ catch(error){
 }
 finally{
   basicModeBtn.click();
-  showWelcomeScreen();
 }

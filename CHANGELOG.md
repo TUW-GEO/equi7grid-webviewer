@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 0.3.1
+
+- disabled 3D interaction in low-performant mode
+
 ## Version 0.3.0
 
 - added welcome screen to select between low- and high-performant setup
