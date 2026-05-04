@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 0.3.0
+
+- added welcome screen to select between low- and high-performant setup
+
 ## Version 0.2.3
 
 - added error propagation and notifications
