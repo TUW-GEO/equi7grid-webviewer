@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 0.3.2
+
+- removed 3D icon in low-performant mode
+
 ## Version 0.3.1
 
 - disabled 3D interaction in low-performant mode

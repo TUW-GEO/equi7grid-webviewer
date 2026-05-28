@@ -1895,10 +1895,11 @@ function showWelcomeScreen() {
     initLayers();
   };
 
-  choose2d.onclick = () => {
+  choose2d.onclick = async () => {
     welcomeScreen.classList.add('hidden');
     disable3d = true;
-    initLayers();
+    await initLayers();
+    toggle3dIcon.innerText = "";
   };
 }
 
