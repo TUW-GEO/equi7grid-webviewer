@@ -1372,8 +1372,14 @@ function startLoader(){
 }
 
 function endLoader(){
-  toggle3dIcon.innerHTML = is3d ? '\uD83D\uDDFA\uFE0F' : '\uD83C\uDF0D';
-  toggle3dIcon.disabled = false;
+  if (!disable3d){
+    toggle3dIcon.innerHTML = is3d ? '\uD83D\uDDFA\uFE0F' : '\uD83C\uDF0D';
+    toggle3dIcon.disabled = false;
+  }
+  else{
+    toggle3dIcon.innerHTML = "";
+    toggle3dIcon.innerText = "";
+  }
   Object.values(app_icons).forEach(iconBtn => {
     iconBtn.disabled = false;
   });
@@ -1900,6 +1906,7 @@ function showWelcomeScreen() {
     disable3d = true;
     await initLayers();
     toggle3dIcon.innerText = "";
+    toggle3dIcon.disabled = true;
   };
 }
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 0.3.3
+
+- fixed bug to also remove the 3D icon when a new layer is added
+
 ## Version 0.3.2
 
 - removed 3D icon in low-performant mode
